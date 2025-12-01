@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexTalk - Complete</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-gradient: radial-gradient(circle at center, #2c3e50, #000000);
+            --primary: #bb86fc; 
+            --card-bg: rgba(30, 30, 30, 0.95);
+            --text-main: #ffffff;
+            --text-sec: #b0b0b0;
+            --radius: 12px;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* POZADÍ - HVĚZDY */
+        .night { position: fixed; top:0; left:0; width:100%; height:100%; transform: rotateZ(45deg); z-index:-1; pointer-events:none; }
+        .star { position: absolute; left: 50%; top: 50%; height: 2px; background: linear-gradient(-45deg, #fff, rgba(49, 49, 49, 0)); border-radius: 999px; animation: tail 3s ease-in-out infinite, shooting 3s ease-in-out infinite; }
+        .star::before, .star::after { content:''; position: absolute; top: calc(50% - 1px); right: 0; height: 2px; background: linear-gradient(-45deg, rgba(0,0,255,0), #fff, rgba(0,0,255,0)); transform: translateX(50%) rotateZ(45deg); border-radius: 100%; animation: shining 3s ease-in-out infinite; }
+        .star::after { transform: translateX(50%) rotateZ(-45deg); }
+
+        /* HEADER */
+        header { text-align: center; padding: 40px 20px 20px; z-index: 10; }
+        .logo-circle { width: 60px; height: 60px; background: #333; border: 2px solid var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 10px; color: var(--primary); box-shadow: 0 0 15px rgba(187, 134, 252, 0.3); }
+        h1 { font-size: 22px; margin: 0; letter-spacing: 1px; }
+        .tagline { color: var(--text-sec); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; font-weight: 600; }
+
+        /* AUTH SYSTEM */
+        .auth-wrapper {
+            width: 90%; max-width: 400px;
+            display: flex; gap: 8px; margin-bottom: 30px;
+            transition: all 0.4s ease; align-items: flex-start;
+        }
+
+        .auth-card {
+            background: var(--card-bg); border: 1px solid #444; border-radius: var(--radius);
+            flex: 1; overflow: hidden; cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex; flex-direction: column;
+        }
+
+        .card-header {
+            padding: 15px 10px; text-align: center; font-weight: bold; font-size: 13px;
+            text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;
+            background: rgba(255,255,255,0.03); transition: background 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .auth-card:hover .card-header { background: rgba(255,255,255,0.08); }
+
+        .card-content {
+            padding: 0 15px; max-height: 0; opacity: 0;
+            transition: all 0.3s ease; display: flex; flex-direction: column; gap: 10px;
+        }
+
+        /* ACTIVE / INACTIVE logic */
+        .auth-card.active { flex: 5; border-color: var(--primary); background: #222; cursor: default; }
+        .auth-card.active .card-header { background: var(--primary); color: #121212; padding: 10px; margin-bottom: 10px; cursor: pointer; }
+        .auth-card.active .card-content { padding-bottom: 15px; max-height: 300px; opacity: 1; }
+        
+        .auth-card.inactive { flex: 1; opacity: 0.6; }
+        .auth-card.inactive .card-header { writing-mode: vertical-rl; text-orientation: mixed; padding: 20px 0; width: 100%; }
+
+        /* INPUTS */
+        input { width: 100%; padding: 12px; background: #121212; border: 1px solid #333; border-radius: 8px; color: white; box-sizing: border-box; font-size: 13px; }
+        input:focus { outline: none; border-color: var(--primary); }
+        .btn-action { width: 100%; padding: 12px; margin-top: 5px; background: var(--primary); border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: #121212; font-size: 13px; }
+
+        /* FEED (Instagram Style) */
+        .feed-section { width: 90%; max-width: 400px; padding-bottom: 40px; border-top: 1px solid #333; padding-top: 20px; }
+        .feed-title { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; text-align: center; }
+
+        .post-card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid #333; margin-bottom: 20px; overflow: hidden; }
+        .post-header { padding: 10px 15px; display: flex; align-items: center; font-size: 13px; font-weight: bold; border-bottom: 1px solid #333; }
+        .avatar { width: 24px; height: 24px; background: var(--primary); border-radius: 50%; margin-right: 10px; }
+        
+        .post-image { height: 200px; background: linear-gradient(to bottom, #2a2a2a, #1a1a1a); display: flex; align-items: center; justify-content: center; font-size: 40px; }
+        
+        .post-footer { padding: 15px; }
+        .post-caption-title { color: var(--text-main); font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .post-caption-text { color: var(--text-sec); font-size: 13px; line-height: 1.4; }
+        .hashtags { color: var(--primary); font-size: 12px; margin-top: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="night"><div class="star"></div><div class="star"></div><div class="star"></div></div>
+
+    <header>
+        <div class="logo-circle">N</div>
+        <h1>NexTalk</h1>
+        <p class="tagline">Secure & Connected • v4.1</p>
+    </header>
+
+    <div class="auth-wrapper">
+        <div class="auth-card" id="card-login" onclick="toggleCard('login', event)">
+            <div class="card-header">Login</div>
+            <div class="card-content">
+                <input type="email" placeholder="Email">
+                <input type="password" placeholder="Heslo">
+                <button class="btn-action">Vstoupit</button>
+            </div>
+        </div>
+
+        <div class="auth-card" id="card-register" onclick="toggleCard('register', event)">
+            <div class="card-header">Register</div>
+            <div class="card-content">
+                <input type="text" placeholder="Přezdívka">
+                <input type="email" placeholder="Email">
+                <input type="password" placeholder="Heslo">
+                <button class="btn-action">Registrovat</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="feed-section">
+        <div class="feed-title">Komunitní novinky</div>
+        
+        <div class="post-card">
+            <div class="post-header">
+                <div class="avatar"></div>
+                <span>NexTalk</span>
+            </div>
+            <div class="post-image">🚀</div>
+            <div class="post-footer">
+                <div class="post-caption-title">BETA</div>
+                <div class="post-caption-text">Nový a bezpečný web pro veškerou komunikaci která bude sloužit jak pro pokec tak i pro gaming.</div>
+                <div class="hashtags"> #beta #nextalk</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCard(type, event) {
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') return;
+            const loginCard = document.getElementById('card-login');
+            const registerCard = document.getElementById('card-register');
+            const target = type === 'login' ? loginCard : registerCard;
+            const other = type === 'login' ? registerCard : loginCard;
+
+            if (target.classList.contains('active')) {
+                target.classList.remove('active');
+                other.classList.remove('inactive');
+            } else {
+                target.classList.add('active'); target.classList.remove('inactive');
+                other.classList.remove('active'); other.classList.add('inactive');
+            }
+        }
+    </script>
+</body>
+</html>
