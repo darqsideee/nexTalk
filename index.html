@@ -8,7 +8,7 @@
     <!-- TailwindCSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Konfigurace Tailwindu + CSS Proměnné -->
+    <!-- Config -->
     <script>
         tailwind.config = {
             theme: {
@@ -43,6 +43,7 @@
         }
     </script>
 
+    <!-- Import Map (Fixed Versions) -->
     <script type="importmap">
         {
             "imports": {
@@ -57,17 +58,16 @@
 
     <style>
         :root {
-            /* Default Dark Mode (Šedá + Fialová) */
             --bg-color: #1a1a1a;
             --dark-color: #262626;
             --card-color: #262626;
             --primary-color: #7A4DFF;
-            --text-color: #7A4DFF; 
+            --text-color: #7A4DFF;
             --muted-color: #a1a1aa;
             --bg-image: none;
         }
         
-        /* Overrides for specific text that needs to be white/readable on dark */
+        /* Helper for readable white text regardless of theme */
         .text-readable { color: #E4E4E4; }
 
         body { 
@@ -78,7 +78,9 @@
             color: var(--text-color); 
             transition: all 0.3s ease;
         }
+        
         .glass { background: rgba(30, 30, 30, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+        
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; opacity: 0.5; }
@@ -100,7 +102,7 @@
             Palette, Layout, Mail, Key, Upload
         } from 'lucide-react';
 
-        // --- API & WORKER CONNECTION ---
+        // --- API HANDLER ---
         const WORKER_URL = "https://komunikejsn.darqsideee.workers.dev";
         
         const apiFetch = async (endpoint, options = {}) => {
@@ -109,21 +111,42 @@
                     ...options,
                     headers: { 'Content-Type': 'application/json', ...options.headers }
                 });
-                if (!res.ok) throw new Error("Chyba komunikace se serverem");
+                if (!res.ok) throw new Error("API Error");
                 return await res.json();
             } catch (e) {
-                console.error(e);
+                console.warn("Using Local Fallback due to API error/offline");
                 return null;
             }
         };
 
-        // --- KOMPONENTY ---
+        // --- COMPONENTS ---
 
-        // 1. Story Viewer
+        // 1. ToS Modal
+        const ToSModal = ({ isOpen, onClose }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in p-4 text-readable">
+                    <div className="glass p-8 rounded-3xl w-full max-w-2xl relative max-h-[90vh] overflow-y-auto border border-nexus-primary/30">
+                        <button onClick={onClose} className="absolute top-6 right-6 hover:text-nexus-primary"><X/></button>
+                        <h2 className="text-3xl font-bold text-nexus-primary mb-6">Pravidla používání (ToS)</h2>
+                        <div className="space-y-4 text-nexus-muted text-sm leading-relaxed">
+                            <p><strong>1. Chování:</strong> Respektujte ostatní. NexTalk je bezpečný prostor.</p>
+                            <p><strong>2. Obsah:</strong> Zákaz nelegálního obsahu. Stories mizí po 24h.</p>
+                            <p><strong>3. Účet:</strong> Jste zodpovědní za své heslo.</p>
+                        </div>
+                        <button onClick={onClose} className="w-full mt-8 bg-nexus-primary py-3 rounded-xl text-white font-bold hover:opacity-90">Souhlasím</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Story Viewer
         const StoryViewer = ({ story, onClose }) => {
             if (!story) return null;
+            
+            // Auto close timer
             useEffect(() => {
-                const t = setTimeout(onClose, 5000); // 5s auto close
+                const t = setTimeout(onClose, 5000);
                 return () => clearTimeout(t);
             }, [story]);
 
@@ -143,7 +166,7 @@
                             {story.image ? (
                                 <img src={story.image} className="w-full h-full object-cover"/>
                             ) : (
-                                <div className="text-center p-8">
+                                <div className="p-8 text-center">
                                     <h1 className="text-2xl text-white font-bold">{story.title || "Story"}</h1>
                                 </div>
                             )}
@@ -153,7 +176,7 @@
             );
         };
 
-        // 2. Add Content Modal (Story/Post with Upload)
+        // 3. Add Content Modal
         const AddContentModal = ({ isOpen, onClose, onPost, user }) => {
             if (!isOpen) return null;
             const [mode, setMode] = useState('story');
@@ -218,8 +241,39 @@
             );
         };
 
-        // 3. Settings Panel (Theme Engine)
-        const SettingsPanel = ({ user, onUpdateUser, onLogout }) => {
+        // 4. Friend Profile Popup
+        const FriendProfile = ({ user, onClose }) => {
+            if(!user) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-scale-up p-4" onClick={onClose}>
+                    <div className="bg-nexus-card border border-nexus-primary/20 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="h-24 bg-gradient-to-r from-nexus-primary to-blue-600 relative">
+                            <button onClick={onClose} className="absolute top-2 right-2 text-white hover:bg-black/20 p-1 rounded-full"><X/></button>
+                        </div>
+                        <div className="px-6 pb-6 -mt-12">
+                            <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-nexus-card bg-nexus-dark mb-2"/>
+                            <h2 className="text-xl font-bold text-nexus-text">{user.name}</h2>
+                            <p className="text-nexus-muted text-xs mb-4">ID: {user.friendCode || '#????'}</p>
+                            
+                            <h3 className="text-xs font-bold text-nexus-muted uppercase border-b border-nexus-primary/20 pb-1 mb-2">Historie Volání</h3>
+                            <div className="space-y-2 mb-6 max-h-24 overflow-y-auto">
+                                <div className="flex justify-between text-xs text-nexus-text bg-nexus-dark p-2 rounded">
+                                    <span className="flex items-center gap-1"><PhoneMissed size={12} className="text-nexus-danger"/> Včera</span>
+                                    <span className="text-nexus-muted">Zmeškáno</span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button className="py-2 bg-nexus-primary rounded-lg text-white font-bold text-sm">Zpráva</button>
+                                <button className="py-2 bg-nexus-dark border border-nexus-primary/30 rounded-lg text-nexus-text font-bold text-sm">Volat</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 5. Settings Panel (Theme Engine)
+        const SettingsPanel = ({ user, onUpdateUser }) => {
             const [tab, setTab] = useState('account');
             const [username, setUsername] = useState(user.username);
             const [theme, setTheme] = useState('dark');
@@ -300,12 +354,10 @@
             const [activeTab, setActiveTab] = useState('feed');
             const [activeChat, setActiveChat] = useState(null);
             
-            // Data State
             const [posts, setPosts] = useState([]);
             const [stories, setStories] = useState([]);
             const [friends, setFriends] = useState([]);
             
-            // UI State
             const [showAddContent, setShowAddContent] = useState(false);
             const [viewingStory, setViewingStory] = useState(null);
             const [showAddFriend, setShowAddFriend] = useState(false);
@@ -314,11 +366,23 @@
             const [chatMsgs, setChatMsgs] = useState([]);
             const chatFileRef = useRef(null);
 
-            // Init Feed
+            // Fetch Feed logic
             useEffect(() => {
-                apiFetch('/api/feed').then(data => {
+                const load = async () => {
+                    const data = await apiFetch('/api/feed');
+                    // Pokud backend vrátí data, použijeme je. Jinak empty.
                     if(data) setPosts(data);
-                });
+                    
+                    // Welcome post fallback pro "Mock" user session
+                    if(!data && posts.length === 0) {
+                        setPosts([{
+                            id: 999, user: 'NexTalk Team', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=NT&backgroundColor=7A4DFF',
+                            title: 'Vítej v NexTalk! 💜', desc: 'Děkujeme, že jsi se přidal. Jsme budoucnost komunikace. Nebudeš toho litovat!',
+                            likes: 1337, image: 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=800&q=80', comments: []
+                        }]);
+                    }
+                };
+                load();
             }, []);
 
             const handleNewPost = (content) => {
@@ -328,7 +392,6 @@
 
             const handleAddFriend = () => {
                 if(!friendCode) return;
-                // Mock logic - in real app call API
                 setFriends([...friends, { 
                     id: Date.now(), 
                     name: `Friend ${friendCode}`, 
