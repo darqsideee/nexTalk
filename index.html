@@ -2,621 +2,1376 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NexTalk | Connected Future</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexTalk Web 2.0 - Admin Edition</title>
     
-    <!-- TailwindCSS -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Config -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        nexus: {
-                            bg: 'var(--bg-color)',
-                            dark: 'var(--dark-color)',
-                            card: 'var(--card-color)',
-                            primary: 'var(--primary-color)',
-                            text: 'var(--text-color)',
-                            muted: 'var(--muted-color)',
-                            danger: '#ef4444',
-                            success: '#22c55e'
-                        }
-                    },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    animation: {
-                        'fade-in': 'fadeIn 0.3s ease-out forwards',
-                        'slide-up': 'slideUp 0.3s ease-out forwards',
-                        'scale-up': 'scaleUp 0.2s ease-out forwards',
-                        'progress': 'progress linear forwards',
-                    },
-                    keyframes: {
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-                        scaleUp: { '0%': { opacity: '0', transform: 'scale(0.95)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
-                        progress: { '0%': { width: '0%' }, '100%': { width: '100%' } }
-                    }
-                }
-            }
+    <!-- Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.294.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+            "firebase/storage": "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"
         }
+    }
     </script>
 
-    <!-- Import Map (Fixed Versions) -->
-    <script type="importmap">
-        {
-            "imports": {
-                "react": "https://esm.sh/react@18.2.0",
-                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-                "lucide-react": "https://esm.sh/lucide-react@0.263.1"
-            }
-        }
-    </script>
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --dark-color: #262626;
-            --card-color: #262626;
-            --primary-color: #7A4DFF;
-            --text-color: #7A4DFF;
-            --muted-color: #a1a1aa;
-            --bg-image: none;
-        }
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, rgba(255,255,255,0.1)); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover, rgba(255,255,255,0.2)); }
         
-        /* Helper for readable white text regardless of theme */
-        .text-readable { color: #E4E4E4; }
+        .story-ring-new { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+        .story-ring-seen { background: #3f3f46; } 
+        
+        /* Animations */
+        @keyframes progress { from { width: 0%; } to { width: 100%; } }
+        .animate-progress { animation: progress 5s linear forwards; }
+        
+        @keyframes bell-ring { 
+            0%, 50%, 100% { transform: rotate(0); }
+            10%, 30% { transform: rotate(15deg); }
+            20%, 40% { transform: rotate(-15deg); }
+        }
+        .animate-bell { animation: bell-ring 2s infinite ease-in-out; }
 
-        body { 
-            background-color: var(--bg-color); 
-            background-image: var(--bg-image);
-            background-size: cover;
-            background-attachment: fixed;
-            color: var(--text-color); 
-            transition: all 0.3s ease;
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .typing-dot { animation: bounce 1s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        /* Theme Variables Defaults */
+        :root {
+            --bg-primary: #0f0f13;
+            --bg-secondary: #18181b;
+            --bg-tertiary: #27272a;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255,255,255,0.6);
+            --accent: #7A4DFF;
+            --border: rgba(255,255,255,0.05);
+            --msg-me: #7A4DFF;
+            --msg-them: #27272a;
         }
         
-        .glass { background: rgba(30, 30, 30, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; opacity: 0.5; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background-color: var(--bg-primary); 
+            color: var(--text-primary); 
+            transition: background 0.3s, color 0.3s; 
+        }
     </style>
 </head>
-<body>
+<body class="h-screen overflow-hidden selection:bg-[#7A4DFF] selection:text-white" id="app-body">
+
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { 
-            Zap, MessageSquare, Users, Phone, Settings, Hash, Heart, Share2, 
-            Send, Plus, Search, Bell, LogOut, MoreVertical, Shield, User,
-            Loader2, Video, Mic, Smile, Lock, Moon, Trash2, Ban, X, ArrowLeft,
-            UserPlus, Check, XCircle, FileText, Image as ImageIcon, Music, 
-            PenTool, Clock, Eye, PhoneIncoming, PhoneOutgoing, PhoneMissed, Sun, 
-            Palette, Layout, Mail, Key, Upload
+            MessageSquare, Users, Settings, Heart, Send, Plus, 
+            Image as ImageIcon, Search, Bell, LogOut, 
+            MoreVertical, Phone, Video, X, Zap, Eye, EyeOff,
+            Hash, Mail, AlertTriangle, CheckCircle, RefreshCw,
+            Camera, ChevronLeft, ChevronRight, Shield, PaintBucket,
+            User, Lock, Trash2, Ban, Globe, Mic, Volume2, UserPlus, FileText, Copy, Edit2, Paperclip, MessageCircle, Activity, Skull, Radio, AlertOctagon, History, PenTool
         } from 'lucide-react';
 
-        // --- API HANDLER ---
-        const WORKER_URL = "https://komunikejsn.darqsideee.workers.dev";
+        // --- FIREBASE SETUP ---
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
+            onAuthStateChanged, signOut, sendEmailVerification, sendPasswordResetEmail, updatePassword, updateEmail
+        } from 'firebase/auth';
+        import { 
+            getFirestore, collection, doc, setDoc, addDoc, onSnapshot, 
+            query, orderBy, serverTimestamp, updateDoc, deleteDoc, getDoc, where, arrayUnion, arrayRemove
+        } from 'firebase/firestore';
+
+        window.process = { env: { NODE_ENV: 'production' } };
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyClqVa0abAGdbWre1SgNQ_LPE3OhFgwqC4",
+            authDomain: "nextalk-4cb86.firebaseapp.com",
+            projectId: "nextalk-4cb86",
+            storageBucket: "nextalk-4cb86.firebasestorage.app",
+            messagingSenderId: "894596255124",
+            appId: "1:894596255124:web:6fdd8b80b8e96fc9aad381",
+            measurementId: "G-M8EDS7KCE2"
+        };
+
+        const _appId = 'nextalk-production-v9'; // Version bump for Soft Delete logic
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- CONFIGURATION ---
+        const CLOUDFLARE_WORKER_URL = "https://nextalk-mailer.tvojedomena.workers.dev"; 
+        const ADMIN_EMAIL = "darqsideee@gmail.com";
+        const ADMIN_CODE = "NEXTALKD105";
+
+        // --- UTILS ---
+        const generateFriendCode = () => {
+            const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const prefix = Array(3).fill(0).map(() => letters[Math.floor(Math.random() * letters.length)]).join('');
+            const suffix = Math.floor(100000 + Math.random() * 900000).toString(); 
+            return `${prefix}-${suffix}`;
+        };
         
-        const apiFetch = async (endpoint, options = {}) => {
+        const getAvatar = (uid) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}&backgroundColor=b6e3f4`;
+        
+        const handleRealFileUpload = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        };
+
+        const sendNotificationEmail = async (toEmail, subject, title, message) => {
+            if (!CLOUDFLARE_WORKER_URL.includes("workers.dev")) return;
             try {
-                const res = await fetch(`${WORKER_URL}${endpoint}`, {
-                    ...options,
-                    headers: { 'Content-Type': 'application/json', ...options.headers }
+                await fetch(CLOUDFLARE_WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: toEmail, subject, title, message })
                 });
-                if (!res.ok) throw new Error("API Error");
-                return await res.json();
-            } catch (e) {
-                console.warn("Using Local Fallback due to API error/offline");
-                return null;
-            }
+            } catch (e) { console.error("Email fail", e); }
+        };
+
+        const logAdminAction = async (text) => {
+            await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'audit_log'), {
+                text, createdAt: serverTimestamp()
+            });
         };
 
         // --- COMPONENTS ---
-
-        // 1. ToS Modal
-        const ToSModal = ({ isOpen, onClose }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in p-4 text-readable">
-                    <div className="glass p-8 rounded-3xl w-full max-w-2xl relative max-h-[90vh] overflow-y-auto border border-nexus-primary/30">
-                        <button onClick={onClose} className="absolute top-6 right-6 hover:text-nexus-primary"><X/></button>
-                        <h2 className="text-3xl font-bold text-nexus-primary mb-6">Pravidla používání (ToS)</h2>
-                        <div className="space-y-4 text-nexus-muted text-sm leading-relaxed">
-                            <p><strong>1. Chování:</strong> Respektujte ostatní. NexTalk je bezpečný prostor.</p>
-                            <p><strong>2. Obsah:</strong> Zákaz nelegálního obsahu. Stories mizí po 24h.</p>
-                            <p><strong>3. Účet:</strong> Jste zodpovědní za své heslo.</p>
-                        </div>
-                        <button onClick={onClose} className="w-full mt-8 bg-nexus-primary py-3 rounded-xl text-white font-bold hover:opacity-90">Souhlasím</button>
-                    </div>
-                </div>
-            );
-        };
-
-        // 2. Story Viewer
-        const StoryViewer = ({ story, onClose }) => {
-            if (!story) return null;
-            
-            // Auto close timer
+        const ThemeInjector = ({ theme, customColors }) => {
             useEffect(() => {
-                const t = setTimeout(onClose, 5000);
-                return () => clearTimeout(t);
-            }, [story]);
-
-            return (
-                <div className="fixed inset-0 z-[60] bg-black flex items-center justify-center animate-fade-in">
-                    <div className="relative h-full w-full md:w-[400px] md:h-[80vh] bg-gray-900 md:rounded-2xl overflow-hidden flex flex-col">
-                        <div className="absolute top-2 left-2 right-2 h-1 bg-white/30 rounded-full overflow-hidden z-20">
-                            <div className="h-full bg-nexus-primary animate-progress" style={{animationDuration: '5s'}}></div>
-                        </div>
-                        <div className="absolute top-6 left-4 flex items-center gap-3 z-20 text-white">
-                            <img src={story.avatar} className="w-10 h-10 rounded-full border-2 border-nexus-primary"/>
-                            <span className="font-bold shadow-black drop-shadow-md">{story.user}</span>
-                        </div>
-                        <button onClick={onClose} className="absolute top-6 right-4 text-white z-20"><X size={24}/></button>
-                        
-                        <div className="flex-1 bg-black flex items-center justify-center relative">
-                            {story.image ? (
-                                <img src={story.image} className="w-full h-full object-cover"/>
-                            ) : (
-                                <div className="p-8 text-center">
-                                    <h1 className="text-2xl text-white font-bold">{story.title || "Story"}</h1>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // 3. Add Content Modal
-        const AddContentModal = ({ isOpen, onClose, onPost, user }) => {
-            if (!isOpen) return null;
-            const [mode, setMode] = useState('story');
-            const [postData, setPostData] = useState({ title: '', desc: '', spotify: '' });
-            const [preview, setPreview] = useState(null);
-            const fileRef = useRef(null);
-
-            const handleFile = (e) => {
-                const file = e.target.files[0];
-                if(file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setPreview(reader.result);
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            const handleSubmit = () => {
-                const content = {
-                    id: Date.now(),
-                    type: mode,
-                    user: user.username,
-                    avatar: user.avatar,
-                    image: preview,
-                    ...postData,
-                    likes: 0,
-                    comments: [],
-                    duration: 24
-                };
-                onPost(content);
-                onClose();
-            };
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-scale-up p-4 text-readable">
-                    <div className="bg-nexus-card border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="flex border-b border-white/10">
-                            <button onClick={() => setMode('story')} className={`flex-1 py-4 font-bold ${mode==='story'?'bg-nexus-primary text-white':'text-nexus-muted'}`}>Story</button>
-                            <button onClick={() => setMode('post')} className={`flex-1 py-4 font-bold ${mode==='post'?'bg-nexus-primary text-white':'text-nexus-muted'}`}>Příspěvek</button>
-                        </div>
-                        <div className="p-6 space-y-4 overflow-y-auto">
-                            <div onClick={() => fileRef.current.click()} className="aspect-video bg-nexus-dark rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-nexus-primary relative overflow-hidden">
-                                <input type="file" ref={fileRef} hidden onChange={handleFile} accept="image/*"/>
-                                {preview ? <img src={preview} className="w-full h-full object-cover"/> : <><ImageIcon className="mb-2 text-nexus-muted"/><span className="text-sm text-nexus-muted">Nahrát obrázek</span></>}
-                            </div>
-                            {mode === 'post' && (
-                                <>
-                                    <input placeholder="Nadpis" className="w-full bg-nexus-dark p-3 rounded-xl outline-none text-readable" onChange={e => setPostData({...postData, title: e.target.value})}/>
-                                    <textarea placeholder="Popis..." className="w-full bg-nexus-dark p-3 rounded-xl outline-none text-readable h-24 resize-none" onChange={e => setPostData({...postData, desc: e.target.value})}/>
-                                    <div className="relative">
-                                        <Music size={16} className="absolute left-3 top-3.5 text-[#1DB954]"/>
-                                        <input placeholder="Spotify skladba..." className="w-full bg-nexus-dark p-3 pl-10 rounded-xl outline-none text-readable" onChange={e => setPostData({...postData, spotify: e.target.value})}/>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                        <div className="p-4 border-t border-white/10 flex justify-end gap-2">
-                            <button onClick={onClose} className="px-4 py-2 text-nexus-muted">Zrušit</button>
-                            <button onClick={handleSubmit} className="px-6 py-2 bg-nexus-primary rounded-xl text-white font-bold">Odeslat</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // 4. Friend Profile Popup
-        const FriendProfile = ({ user, onClose }) => {
-            if(!user) return null;
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-scale-up p-4" onClick={onClose}>
-                    <div className="bg-nexus-card border border-nexus-primary/20 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="h-24 bg-gradient-to-r from-nexus-primary to-blue-600 relative">
-                            <button onClick={onClose} className="absolute top-2 right-2 text-white hover:bg-black/20 p-1 rounded-full"><X/></button>
-                        </div>
-                        <div className="px-6 pb-6 -mt-12">
-                            <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-nexus-card bg-nexus-dark mb-2"/>
-                            <h2 className="text-xl font-bold text-nexus-text">{user.name}</h2>
-                            <p className="text-nexus-muted text-xs mb-4">ID: {user.friendCode || '#????'}</p>
-                            
-                            <h3 className="text-xs font-bold text-nexus-muted uppercase border-b border-nexus-primary/20 pb-1 mb-2">Historie Volání</h3>
-                            <div className="space-y-2 mb-6 max-h-24 overflow-y-auto">
-                                <div className="flex justify-between text-xs text-nexus-text bg-nexus-dark p-2 rounded">
-                                    <span className="flex items-center gap-1"><PhoneMissed size={12} className="text-nexus-danger"/> Včera</span>
-                                    <span className="text-nexus-muted">Zmeškáno</span>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button className="py-2 bg-nexus-primary rounded-lg text-white font-bold text-sm">Zpráva</button>
-                                <button className="py-2 bg-nexus-dark border border-nexus-primary/30 rounded-lg text-nexus-text font-bold text-sm">Volat</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // 5. Settings Panel (Theme Engine)
-        const SettingsPanel = ({ user, onUpdateUser }) => {
-            const [tab, setTab] = useState('account');
-            const [username, setUsername] = useState(user.username);
-            const [theme, setTheme] = useState('dark');
-            const [grad1, setGrad1] = useState('#1a1a1a');
-            const [grad2, setGrad2] = useState('#000000');
-
-            const applyTheme = (mode) => {
                 const root = document.documentElement;
-                setTheme(mode);
-                if(mode === 'dark') {
-                    root.style.setProperty('--bg-color', '#1a1a1a');
-                    root.style.setProperty('--dark-color', '#262626');
-                    root.style.setProperty('--card-color', '#262626');
-                    root.style.setProperty('--text-color', '#7A4DFF');
-                    root.style.setProperty('--bg-image', 'none');
-                } else if (mode === 'light') {
-                    root.style.setProperty('--bg-color', '#ffffff');
-                    root.style.setProperty('--dark-color', '#f3f4f6');
-                    root.style.setProperty('--card-color', '#ffffff');
-                    root.style.setProperty('--text-color', '#7A4DFF');
-                    root.style.setProperty('--bg-image', 'none');
-                } else { // Custom
-                    root.style.setProperty('--bg-color', '#000000');
-                    root.style.setProperty('--card-color', 'rgba(0,0,0,0.5)');
-                    root.style.setProperty('--bg-image', `linear-gradient(135deg, ${grad1}, ${grad2})`);
+                if (theme === 'light') {
+                    root.style.setProperty('--bg-primary', '#f4f4f5');
+                    root.style.setProperty('--bg-secondary', '#ffffff');
+                    root.style.setProperty('--bg-tertiary', '#e4e4e7');
+                    root.style.setProperty('--text-primary', '#18181b');
+                    root.style.setProperty('--text-secondary', '#71717a');
+                    root.style.setProperty('--border', 'rgba(0,0,0,0.1)');
+                    root.style.setProperty('--scrollbar-thumb', 'rgba(0,0,0,0.2)');
+                    root.style.setProperty('--msg-me', '#7A4DFF');
+                    root.style.setProperty('--msg-them', '#e4e4e7');
+                } else if (theme === 'custom' && customColors) {
+                    root.style.setProperty('--bg-primary', customColors.bgPrimary);
+                    root.style.setProperty('--bg-secondary', customColors.bgSecondary);
+                    root.style.setProperty('--bg-tertiary', customColors.bgSecondary + '80'); 
+                    root.style.setProperty('--text-primary', customColors.text);
+                    root.style.setProperty('--text-secondary', customColors.text + '99');
+                    root.style.setProperty('--accent', customColors.accent);
+                    root.style.setProperty('--border', customColors.text + '20');
+                    root.style.setProperty('--msg-me', customColors.accent);
+                    root.style.setProperty('--msg-them', customColors.bgSecondary + '90');
+                } else {
+                    root.style.setProperty('--bg-primary', '#0f0f13');
+                    root.style.setProperty('--bg-secondary', '#18181b');
+                    root.style.setProperty('--bg-tertiary', '#27272a');
+                    root.style.setProperty('--text-primary', '#ffffff');
+                    root.style.setProperty('--text-secondary', 'rgba(255,255,255,0.6)');
+                    root.style.setProperty('--border', 'rgba(255,255,255,0.05)');
+                    root.style.setProperty('--msg-me', '#7A4DFF');
+                    root.style.setProperty('--msg-them', '#27272a');
                 }
+            }, [theme, customColors]);
+            return null;
+        };
+
+        const GlassCard = ({ children, className = "", onClick, onContextMenu }) => (
+            <div onClick={onClick} onContextMenu={onContextMenu} className={`backdrop-blur-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Modal = ({ onClose, title, children }) => (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+                <GlassCard className="w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col rounded-2xl bg-[var(--bg-secondary)]">
+                    <div className="p-5 border-b border-[var(--border)] flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">{title}</h2>
+                        <button onClick={onClose} className="p-1 hover:bg-[var(--bg-tertiary)] rounded-full text-[var(--text-primary)]"><X size={20}/></button>
+                    </div>
+                    <div className="p-6 overflow-y-auto custom-scrollbar text-[var(--text-primary)]">
+                        {children}
+                    </div>
+                </GlassCard>
+            </div>
+        );
+
+        const Button = ({ children, onClick, className = "", variant = "primary" }) => {
+            const styles = {
+                primary: "bg-[var(--accent)] text-white hover:brightness-110",
+                secondary: "bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-opacity-80",
+                danger: "bg-red-500/20 text-red-500 hover:bg-red-500/30"
+            };
+            return (
+                <button onClick={onClick} className={`px-4 py-2 rounded-xl font-bold transition-all active:scale-95 ${styles[variant]} ${className}`}>
+                    {children}
+                </button>
+            );
+        };
+
+        const Input = ({ type = "text", placeholder, value, onChange, icon: Icon, className="" }) => (
+            <div className="relative w-full">
+                {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] w-5 h-5" />}
+                <input 
+                    type={type} 
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={onChange}
+                    className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-xl py-3 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all ${Icon ? 'pl-12' : 'pl-4'} ${className}`}
+                />
+            </div>
+        );
+
+        // --- MODULES ---
+
+        // AUTH SCREEN
+        const AuthScreen = ({ onLogin }) => {
+            const [mode, setMode] = useState('login');
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+            const [username, setUsername] = useState("");
+            const [error, setError] = useState("");
+            const [successMsg, setSuccessMsg] = useState("");
+            const [loading, setLoading] = useState(false);
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setError(""); setLoading(true);
+                try {
+                    if (mode === 'register') {
+                        if (username.length < 3) throw new Error("Jméno je příliš krátké");
+                        const cred = await createUserWithEmailAndPassword(auth, email, password);
+                        await sendEmailVerification(cred.user);
+                        await setDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', cred.user.uid), {
+                            uid: cred.user.uid, email, displayName: username, friendCode: generateFriendCode(),
+                            avatarUrl: getAvatar(cred.user.uid), status: 'online', friends: [], blocked: [], bio: "Nový člen NexTalk", theme: 'dark', joinedAt: serverTimestamp(), isAdmin: false
+                        });
+                        setMode('await_verify');
+                    } else if (mode === 'login') {
+                        const cred = await signInWithEmailAndPassword(auth, email, password);
+                        if (!cred.user.emailVerified) { await signOut(auth); setMode('await_verify'); }
+                    } else if (mode === 'reset') {
+                        await sendPasswordResetEmail(auth, email);
+                        setSuccessMsg(`Odkaz odeslán na ${email}.`); setMode('login');
+                    }
+                } catch (err) { setError(err.message.replace('Firebase: ', '')); } finally { setLoading(false); }
             };
 
-            useEffect(() => { if(theme === 'custom') applyTheme('custom'); }, [grad1, grad2]);
-
             return (
-                <div className="flex flex-col md:flex-row h-full gap-6 animate-fade-in text-readable">
-                    <div className="w-full md:w-60 flex flex-col gap-1 md:border-r border-nexus-primary/20 md:pr-4">
-                        <button onClick={() => setTab('account')} className={`text-left px-4 py-3 rounded-xl font-bold ${tab==='account'?'bg-nexus-primary text-white':'text-nexus-muted'}`}>Účet</button>
-                        <button onClick={() => setTab('appearance')} className={`text-left px-4 py-3 rounded-xl font-bold ${tab==='appearance'?'bg-nexus-primary text-white':'text-nexus-muted'}`}>Vzhled</button>
-                    </div>
-                    <div className="flex-1">
-                        {tab === 'account' && (
-                            <div className="space-y-4 max-w-md">
-                                <h2 className="text-2xl font-bold text-nexus-primary">Účet</h2>
-                                <div className="bg-nexus-dark p-4 rounded-xl">
-                                    <label className="text-xs text-nexus-muted uppercase font-bold">Jméno (Změna 1x týdně)</label>
-                                    <input value={username} onChange={e => !e.target.value.includes(' ') && setUsername(e.target.value)} className="w-full bg-transparent border-b border-nexus-primary/30 py-2 outline-none text-readable"/>
+                <div className="flex items-center justify-center min-h-screen relative overflow-hidden bg-[#0a0a0c]">
+                    <GlassCard className="w-full max-w-md p-8 z-10 mx-4 border-t border-white/10 relative">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-black text-white mb-2">NexTalk</h1>
+                        </div>
+                        {mode === 'await_verify' ? (
+                            <div className="text-center space-y-6">
+                                <div className="bg-yellow-500/20 p-4 rounded-xl text-yellow-200">
+                                    <h3 className="font-bold text-lg">Ověř svůj email</h3>
+                                    <p className="text-sm font-bold mt-2 uppercase text-yellow-400 flex items-center justify-center gap-2"><AlertTriangle size={16}/> Zkontroluj složku SPAM!</p>
                                 </div>
-                                <div className="bg-nexus-dark p-4 rounded-xl flex justify-between">
-                                    <span className="text-xs text-nexus-muted uppercase font-bold">Friend Code</span>
-                                    <span className="font-bold text-nexus-primary">{user.friendCode}</span>
-                                </div>
-                                <button onClick={() => onUpdateUser({...user, username})} className="bg-nexus-primary px-6 py-2 rounded-xl text-white font-bold">Uložit</button>
+                                <Button className="w-full" onClick={() => window.location.reload()}>Už jsem ověřil</Button>
                             </div>
+                        ) : (
+                            <form onSubmit={handleAuth} className="space-y-4">
+                                {mode === 'register' && <Input icon={User} placeholder="Uživatelské jméno" value={username} onChange={e => setUsername(e.target.value)} />}
+                                <Input icon={Mail} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+                                {mode !== 'reset' && <Input icon={Lock} type="password" placeholder="Heslo" value={password} onChange={e => setPassword(e.target.value)} />}
+                                {mode === 'login' && <div className="flex justify-end"><button type="button" onClick={() => setMode('reset')} className="text-xs text-[#7A4DFF]">Zapomněl jsi heslo?</button></div>}
+                                {successMsg && <div className="p-3 bg-green-500/20 text-green-400 text-sm rounded-lg text-center font-bold flex items-center justify-center gap-2"><CheckCircle size={16}/> {successMsg}</div>}
+                                {error && <div className="p-3 bg-red-500/20 text-red-400 text-sm rounded-lg text-center">{error}</div>}
+                                <Button loading={loading} className="w-full">{mode === 'login' ? 'Přihlásit se' : mode === 'register' ? 'Registrovat se' : 'Odeslat reset'}</Button>
+                                {mode !== 'reset' && <div className="text-center mt-4"><button type="button" onClick={() => {setMode(mode === 'login' ? 'register' : 'login'); setError("");}} className="text-sm text-white/50 hover:text-white">{mode === 'login' ? 'Nemáš účet? Registrace' : 'Máš účet? Přihlášení'}</button></div>}
+                            </form>
                         )}
-                        {tab === 'appearance' && (
-                            <div className="space-y-4 max-w-md">
-                                <h2 className="text-2xl font-bold text-nexus-primary">Vzhled</h2>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {['dark', 'light', 'custom'].map(m => (
-                                        <div key={m} onClick={() => applyTheme(m)} className={`p-4 border-2 rounded-xl cursor-pointer text-center font-bold capitalize ${theme===m?'border-nexus-primary bg-nexus-primary/10':'border-white/10'}`}>{m}</div>
-                                    ))}
-                                </div>
-                                {theme === 'custom' && (
-                                    <div className="bg-nexus-dark p-4 rounded-xl space-y-2">
-                                        <label className="text-xs font-bold text-nexus-muted uppercase">Gradient Pozadí</label>
-                                        <div className="flex gap-2">
-                                            <input type="color" value={grad1} onChange={e => setGrad1(e.target.value)} className="w-full h-8"/>
-                                            <input type="color" value={grad2} onChange={e => setGrad2(e.target.value)} className="w-full h-8"/>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    </GlassCard>
                 </div>
             );
         };
 
-        // --- DASHBOARD ---
-        const Dashboard = ({ user, onLogout }) => {
-            const [activeTab, setActiveTab] = useState('feed');
-            const [activeChat, setActiveChat] = useState(null);
-            
-            const [posts, setPosts] = useState([]);
-            const [stories, setStories] = useState([]);
-            const [friends, setFriends] = useState([]);
-            
-            const [showAddContent, setShowAddContent] = useState(false);
-            const [viewingStory, setViewingStory] = useState(null);
-            const [showAddFriend, setShowAddFriend] = useState(false);
-            const [friendCode, setFriendCode] = useState('');
-            const [showRequests, setShowRequests] = useState(false);
-            const [chatMsgs, setChatMsgs] = useState([]);
-            const chatFileRef = useRef(null);
+        // SETTINGS
+        const SettingsModal = ({ user, onClose }) => {
+            const [tab, setTab] = useState('appearance');
+            const [customColors, setCustomColors] = useState(user.customColors || { bgPrimary: '#000000', bgSecondary: '#111111', text: '#ffffff', accent: '#7A4DFF' });
+            const [newName, setNewName] = useState(user.displayName);
+            const [newBio, setNewBio] = useState(user.bio || "");
+            const [adminCode, setAdminCode] = useState("");
 
-            // Fetch Feed logic
-            useEffect(() => {
-                const load = async () => {
-                    const data = await apiFetch('/api/feed');
-                    // Pokud backend vrátí data, použijeme je. Jinak empty.
-                    if(data) setPosts(data);
-                    
-                    // Welcome post fallback pro "Mock" user session
-                    if(!data && posts.length === 0) {
-                        setPosts([{
-                            id: 999, user: 'NexTalk Team', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=NT&backgroundColor=7A4DFF',
-                            title: 'Vítej v NexTalk! 💜', desc: 'Děkujeme, že jsi se přidal. Jsme budoucnost komunikace. Nebudeš toho litovat!',
-                            likes: 1337, image: 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=800&q=80', comments: []
-                        }]);
-                    }
-                };
-                load();
-            }, []);
+            const saveTheme = async (theme) => { await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', user.uid), { theme }); };
+            const saveCustomColors = async () => { await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', user.uid), { theme: 'custom', customColors }); };
+            const handleSaveProfile = async () => { await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', user.uid), { displayName: newName, bio: newBio }); alert("Uloženo"); };
+            const handleUnblock = async (bid) => { await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', user.uid), { blocked: user.blocked.filter(id => id !== bid) }); };
 
-            const handleNewPost = (content) => {
-                if(content.type === 'story') setStories([...stories, content]);
-                else setPosts([content, ...posts]);
-            };
-
-            const handleAddFriend = () => {
-                if(!friendCode) return;
-                setFriends([...friends, { 
-                    id: Date.now(), 
-                    name: `Friend ${friendCode}`, 
-                    avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${friendCode}`, 
-                    status: 'offline', 
-                    friendCode 
-                }]);
-                setShowAddFriend(false);
-                setFriendCode('');
-            };
-
-            const handleChatUpload = (e) => {
+            const handleFileChange = async (e) => {
                 const file = e.target.files[0];
-                if(file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setChatMsgs([...chatMsgs, {id: Date.now(), image: reader.result, sender: 'me'}]);
-                    reader.readAsDataURL(file);
+                if (!file) return;
+                const mockUrl = await handleRealFileUpload(file);
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', user.uid), { avatarUrl: mockUrl });
+            };
+
+            const activateAdmin = async () => {
+                if(user.email === ADMIN_EMAIL && adminCode === ADMIN_CODE) {
+                    await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', user.uid), { isAdmin: true });
+                    alert("Admin Tools Unlocked!");
+                    window.location.reload();
+                } else {
+                    alert("Nesprávný kód nebo email.");
                 }
             };
 
             return (
-                <div className="flex h-screen overflow-hidden font-sans">
-                    {/* Sidebar */}
-                    <aside className="w-20 md:w-72 bg-nexus-dark border-r border-nexus-primary/10 flex flex-col z-20 shrink-0">
-                        <div className="p-6 flex items-center gap-4">
-                            <Zap className="text-nexus-primary" size={28}/>
-                            <span className="font-bold text-xl hidden md:block text-nexus-primary">NexTalk</span>
-                        </div>
-                        <nav className="flex-1 px-4 space-y-2 mt-4">
-                            {[{id:'feed', icon:Hash, l:'Feed'}, {id:'friends', icon:Users, l:'Přátelé'}, {id:'settings', icon:Settings, l:'Nastavení'}].map(i => (
-                                <button key={i.id} onClick={() => {setActiveTab(i.id); setActiveChat(null);}} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeTab===i.id?'bg-nexus-primary text-white':'hover:bg-nexus-primary/10 text-readable'}`}>
-                                    <i.icon size={24}/> <span className="font-medium hidden md:block">{i.l}</span>
+                <Modal onClose={onClose} title="Nastavení">
+                    <div className="flex gap-6 min-h-[400px]">
+                        <div className="w-1/3 border-r border-[var(--border)] space-y-2">
+                            {['appearance', 'account', 'security', 'blocked'].map(t => (
+                                <button key={t} onClick={() => setTab(t)} className={`w-full text-left px-4 py-3 rounded-xl transition ${tab === t ? 'bg-[var(--accent)] text-white' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}>
+                                    {t === 'appearance' ? 'Vzhled' : t === 'account' ? 'Účet' : t === 'security' ? 'Bezpečnost' : 'Blokovaní'}
                                 </button>
                             ))}
-                        </nav>
-                        <div className="p-4 border-t border-nexus-primary/10 flex items-center gap-3">
-                            <img src={user.avatar} className="w-10 h-10 rounded-full border border-nexus-primary"/>
-                            <div className="hidden md:block overflow-hidden flex-1">
-                                <div className="font-bold text-sm truncate text-readable">{user.username}</div>
-                                <div className="text-[10px] text-nexus-muted">{user.friendCode}</div>
-                            </div>
-                            <button onClick={onLogout}><LogOut className="text-nexus-danger hover:scale-110"/></button>
                         </div>
-                    </aside>
-
-                    {/* Main */}
-                    <main className="flex-1 flex flex-col bg-nexus-bg relative overflow-hidden">
-                        <header className="h-16 glass flex items-center justify-between px-8 z-10 shrink-0">
-                            <h2 className="text-xl font-bold capitalize text-nexus-primary">{activeTab === 'friends' && activeChat ? activeChat.name : activeTab}</h2>
-                            <div className="flex gap-4 relative">
-                                <button className="text-nexus-muted hover:text-nexus-primary"><Search size={20}/></button>
-                                <button onClick={() => setShowRequests(!showRequests)} className="text-nexus-muted hover:text-nexus-primary relative">
-                                    <Bell size={20}/>
-                                </button>
-                                {showRequests && (
-                                    <div className="absolute right-0 top-10 w-64 bg-nexus-card border border-nexus-primary/20 rounded-xl shadow-xl p-4 z-50 animate-fade-in text-readable">
-                                        <h3 className="text-xs font-bold uppercase text-nexus-muted mb-2">Žádosti o přátelství</h3>
-                                        <div className="text-center text-sm text-nexus-muted">Zatím žádné žádosti.</div>
+                        <div className="flex-1 space-y-6">
+                            {tab === 'appearance' && (
+                                <>
+                                    <h3 className="font-bold mb-2">Režim</h3>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div onClick={() => saveTheme('dark')} className={`h-20 bg-[#0f0f13] border-2 ${user.theme === 'dark' ? 'border-[var(--accent)]' : 'border-transparent'} rounded-xl flex items-center justify-center cursor-pointer text-white`}>Dark</div>
+                                        <div onClick={() => saveTheme('light')} className={`h-20 bg-[#f4f4f5] border-2 ${user.theme === 'light' ? 'border-[var(--accent)]' : 'border-transparent'} rounded-xl flex items-center justify-center cursor-pointer text-black`}>Light</div>
+                                        <div onClick={() => saveTheme('custom')} className={`h-20 bg-gradient-to-br from-purple-900 to-black border-2 ${user.theme === 'custom' ? 'border-[var(--accent)]' : 'border-transparent'} rounded-xl flex items-center justify-center cursor-pointer text-white`}>Custom</div>
                                     </div>
-                                )}
-                            </div>
-                        </header>
-
-                        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-                            {/* FEED */}
-                            {activeTab === 'feed' && (
-                                <div className="max-w-2xl mx-auto space-y-8 pb-20">
-                                    <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar items-center">
-                                        <div onClick={() => setShowAddContent(true)} className="flex flex-col items-center gap-2 cursor-pointer group shrink-0">
-                                            <div className="w-16 h-16 rounded-full border-2 border-dashed border-nexus-muted flex items-center justify-center hover:border-nexus-primary hover:text-nexus-primary bg-nexus-card">
-                                                <Plus size={24}/>
-                                            </div>
-                                            <span className="text-xs font-bold text-nexus-muted">Přidat</span>
+                                    {user.theme === 'custom' && (
+                                        <div className="space-y-3 mt-4">
+                                            <div><label className="text-xs">Pozadí (Main)</label><input type="color" className="w-full h-8" value={customColors.bgPrimary} onChange={e => setCustomColors({...customColors, bgPrimary: e.target.value})} /></div>
+                                            <div><label className="text-xs">Panely (Secondary)</label><input type="color" className="w-full h-8" value={customColors.bgSecondary} onChange={e => setCustomColors({...customColors, bgSecondary: e.target.value})} /></div>
+                                            <div><label className="text-xs">Text</label><input type="color" className="w-full h-8" value={customColors.text} onChange={e => setCustomColors({...customColors, text: e.target.value})} /></div>
+                                            <div><label className="text-xs">Akcent</label><input type="color" className="w-full h-8" value={customColors.accent} onChange={e => setCustomColors({...customColors, accent: e.target.value})} /></div>
+                                            <Button onClick={saveCustomColors} className="w-full">Uložit Barvy</Button>
                                         </div>
-                                        {stories.map(s => (
-                                            <div key={s.id} onClick={() => setViewingStory(s)} className="flex flex-col items-center gap-2 cursor-pointer shrink-0">
-                                                <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-nexus-primary to-blue-500">
-                                                    <div className="w-full h-full rounded-full bg-nexus-bg p-[2px]"><img src={s.avatar} className="w-full h-full rounded-full object-cover"/></div>
-                                                </div>
-                                                <span className="text-xs font-bold text-readable">{s.user}</span>
-                                            </div>
-                                        ))}
+                                    )}
+                                </>
+                            )}
+                            {tab === 'account' && (
+                                <>
+                                    <div className="flex items-center gap-4">
+                                        <div className="relative group cursor-pointer">
+                                            <img src={user.avatarUrl} className="w-20 h-20 rounded-full object-cover border-2 border-[var(--border)]" />
+                                            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><Camera size={20} className="text-white"/></div>
+                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
+                                        </div>
+                                        <div><div className="font-bold text-lg">{user.displayName}</div><div className="text-xs text-[var(--accent)] font-mono">{user.friendCode}</div></div>
                                     </div>
-                                    <div className="space-y-6">
-                                        {posts.map(post => (
-                                            <div key={post.id} className="bg-nexus-card border border-nexus-primary/10 rounded-2xl overflow-hidden shadow-lg animate-fade-in">
-                                                <div className="p-4 flex items-center gap-3">
-                                                    <img src={post.avatar} className="w-10 h-10 rounded-full"/>
-                                                    <div><div className="font-bold text-sm text-readable">{post.user}</div><div className="text-xs text-nexus-muted">Právě teď</div></div>
-                                                </div>
-                                                <div className="px-4 pb-2 text-readable"><h3 className="font-bold text-lg">{post.title}</h3><p className="text-sm opacity-80">{post.desc}</p></div>
-                                                {post.image && <img src={post.image} className="w-full h-64 object-cover"/>}
-                                                <div className="p-4 flex gap-4 border-t border-nexus-primary/10">
-                                                    <Heart size={20} className="text-nexus-muted hover:text-nexus-primary cursor-pointer"/> <span className="text-sm text-nexus-muted">{post.likes}</span>
-                                                </div>
+                                    <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Jméno" />
+                                    <textarea className="w-full bg-[var(--bg-tertiary)] rounded-xl p-3 text-[var(--text-primary)] border border-[var(--border)] h-24 outline-none" value={newBio} onChange={e => setNewBio(e.target.value)} placeholder="Bio..." />
+                                    <Button onClick={handleSaveProfile}>Uložit</Button>
+                                </>
+                            )}
+                            {tab === 'security' && (
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-sm text-yellow-200"><AlertTriangle size={16} className="inline mr-2"/>Zkontroluj SPAM složku!</div>
+                                    <Button variant="secondary" className="w-full justify-between">Změnit Email <ChevronRight size={16}/></Button>
+                                    <Button variant="secondary" className="w-full justify-between">Změnit Heslo <ChevronRight size={16}/></Button>
+                                    
+                                    {user.email === ADMIN_EMAIL && !user.isAdmin && (
+                                        <div className="mt-8 border-t border-[var(--border)] pt-4">
+                                            <h3 className="text-sm font-bold text-red-500 uppercase mb-2">Admin Zone</h3>
+                                            <div className="flex gap-2">
+                                                <Input type="password" placeholder="Admin Kód" value={adminCode} onChange={e => setAdminCode(e.target.value)} />
+                                                <Button variant="danger" onClick={activateAdmin}>Aktivovat</Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {tab === 'blocked' && (
+                                <div>
+                                    {user.blocked?.length === 0 && <div className="text-[var(--text-secondary)] text-center py-10">Nikdo není blokován</div>}
+                                    {user.blocked?.map(bid => (
+                                        <div key={bid} className="flex justify-between items-center p-3 bg-[var(--bg-tertiary)] rounded-xl mb-2">
+                                            <span className="font-mono text-sm">{bid}</span>
+                                            <Button variant="secondary" className="py-1 px-3 text-xs" onClick={() => handleUnblock(bid)}>Odblokovat</Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
+        // ADMIN DASHBOARD
+        const AdminDashboard = ({ user, allUsers }) => {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [crews, setCrews] = useState([]);
+            const [posts, setPosts] = useState([]);
+            const [logs, setLogs] = useState([]);
+            const [ghostCrew, setGhostCrew] = useState(null);
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [userHistory, setUserHistory] = useState({ msgs: [], posts: [], stories: [] });
+            const [newUserId, setNewUserId] = useState("");
+            
+            useEffect(() => {
+                const u1 = onSnapshot(collection(db, 'artifacts', _appId, 'public', 'data', 'crews'), s => setCrews(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                const u2 = onSnapshot(collection(db, 'artifacts', _appId, 'public', 'data', 'posts'), s => setPosts(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                const u3 = onSnapshot(query(collection(db, 'artifacts', _appId, 'public', 'data', 'audit_log'), orderBy('createdAt', 'desc')), s => setLogs(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                return () => { u1(); u2(); u3(); };
+            }, []);
+
+            const fetchUserHistory = async (uid) => {
+                // Simulating fetch of history (including soft deleted if we had queries for them)
+                // Here we just fetch what we can access easily
+                // Real implementation would query all collections where authorId == uid without deleted filter
+                // For this demo, we filter existing loaded posts/stories
+                const uPosts = posts.filter(p => p.authorId === uid);
+                // We'd need to query stories and messages specifically
+                setUserHistory({ posts: uPosts, msgs: [], stories: [] }); 
+                setSelectedUser(allUsers[uid]);
+                setNewUserId(allUsers[uid].friendCode);
+            };
+
+            const updateUserCode = async () => {
+                if(!selectedUser) return;
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', selectedUser.uid), { friendCode: newUserId });
+                logAdminAction(`Changed ID for ${selectedUser.displayName} to ${newUserId}`);
+                alert("ID Změněno");
+            };
+
+            const banUser = async (uid) => {
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', uid), { 
+                    banned: true, 
+                    bannedReason: "Porušení pravidel (Admin Action)" 
+                });
+                logAdminAction(`Banned user ${uid}`);
+                alert("Uživatel zabanován.");
+            };
+
+            const deleteContent = async (collectionName, id) => {
+                // Soft Delete
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', collectionName, id), { deleted: true });
+                logAdminAction(`Deleted ${collectionName} ${id}`);
+            };
+            
+            const openGhostView = (crew) => {
+                setGhostCrew(crew);
+            };
+
+            return (
+                <div className="h-full flex flex-col bg-[#111]">
+                    <div className="bg-red-900/20 border-b border-red-500/30 p-4 flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-red-500 flex items-center gap-2"><Shield/> ADMIN GOD MODE</h2>
+                        <div className="flex gap-2">
+                            {['overview', 'users', 'crews', 'content'].map(t => (
+                                <button key={t} onClick={() => setActiveTab(t)} className={`px-3 py-1 rounded uppercase text-xs font-bold ${activeTab===t ? 'bg-red-600 text-white' : 'bg-red-900/40 text-red-300'}`}>{t}</button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        {activeTab === 'overview' && (
+                            <div className="flex gap-6 h-full">
+                                <div className="w-1/3 bg-[#1a1a1a] p-4 rounded-xl border border-white/10 overflow-y-auto">
+                                    <h3 className="font-bold text-red-400 mb-4 flex items-center gap-2"><Activity size={16}/> AUDIT LOG</h3>
+                                    <div className="space-y-2">
+                                        {logs.map(log => (
+                                            <div key={log.id} className="text-xs p-2 bg-white/5 rounded border-l-2 border-red-500">
+                                                <div className="text-gray-400 mb-1">{new Date(log.createdAt?.toMillis()).toLocaleTimeString()}</div>
+                                                {log.text}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            )}
-
-                            {/* FRIENDS */}
-                            {activeTab === 'friends' && (
-                                !activeChat ? (
-                                    <div>
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="font-bold text-nexus-muted uppercase">Seznam Přátel</h3>
-                                            <button onClick={() => setShowAddFriend(true)} className="text-nexus-primary text-sm font-bold flex items-center gap-1 hover:underline"><UserPlus size={16}/> Přidat</button>
-                                        </div>
-                                        {showAddFriend && (
-                                            <div className="mb-6 bg-nexus-dark p-4 rounded-xl flex gap-2 animate-fade-in">
-                                                <input value={friendCode} onChange={e => setFriendCode(e.target.value)} placeholder="Zadejte Friend Code (#XXXX)" className="flex-1 bg-transparent border-b border-nexus-primary/50 outline-none text-readable"/>
-                                                <button onClick={handleAddFriend} className="bg-nexus-primary text-white px-4 py-1 rounded-lg font-bold text-sm">Odeslat</button>
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {friends.map(f => (
-                                                <div key={f.id} className="bg-nexus-card border border-nexus-primary/10 p-4 rounded-2xl flex items-center gap-3 relative">
-                                                    <img src={f.avatar} className="w-12 h-12 rounded-full bg-nexus-dark"/>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="font-bold truncate text-readable">{f.name}</div>
-                                                        <div className="text-xs text-nexus-muted">{f.status}</div>
-                                                    </div>
-                                                    <button onClick={() => setActiveChat(f)} className="bg-nexus-primary/10 text-nexus-primary px-3 py-1 rounded text-xs font-bold hover:bg-nexus-primary hover:text-white">Chat</button>
-                                                    <button className="p-2 text-nexus-muted hover:text-readable"><Phone size={16}/></button>
+                                <div className="flex-1 bg-[#1a1a1a] p-4 rounded-xl border border-white/10 overflow-y-auto">
+                                    <h3 className="font-bold text-blue-400 mb-4 flex items-center gap-2"><Globe size={16}/> GLOBAL FEED</h3>
+                                    <div className="space-y-2">
+                                        {posts.map(p => (
+                                            <div key={p.id} className={`p-3 rounded border border-white/5 ${p.deleted ? 'bg-red-900/20 border-red-500/30' : 'bg-white/5'}`}>
+                                                <div className="flex justify-between">
+                                                    <span className="text-sm font-bold text-gray-300">{p.authorName}</span>
+                                                    {p.deleted && <span className="text-xs text-red-500">DELETED</span>}
                                                 </div>
-                                            ))}
-                                        </div>
-                                        {friends.length === 0 && <div className="text-center text-nexus-muted mt-10">Zatím nemáte žádné přátele.</div>}
+                                                <div className="text-sm text-gray-400 mt-1">{p.content}</div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ) : (
-                                    <div className="flex flex-col h-full bg-nexus-card rounded-2xl border border-nexus-primary/10 overflow-hidden animate-fade-in">
-                                        <div className="h-14 border-b border-nexus-primary/10 flex items-center justify-between px-4 bg-nexus-dark">
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'users' && (
+                            <div className="flex gap-6 h-full">
+                                <div className="w-1/3 space-y-2 overflow-y-auto">
+                                    {Object.values(allUsers).map(u => (
+                                        <div key={u.uid} onClick={() => fetchUserHistory(u.uid)} className={`flex justify-between items-center bg-[#1a1a1a] p-3 rounded border cursor-pointer hover:border-blue-500 ${selectedUser?.uid === u.uid ? 'border-blue-500 bg-blue-900/20' : 'border-white/10'}`}>
                                             <div className="flex items-center gap-3">
-                                                <button onClick={() => setActiveChat(null)} className="text-readable"><ArrowLeft/></button>
-                                                <img src={activeChat.avatar} className="w-8 h-8 rounded-full"/>
-                                                <span className="font-bold text-readable">{activeChat.name}</span>
-                                            </div>
-                                            <div className="flex gap-2 text-nexus-primary"><Phone/><Video/></div>
-                                        </div>
-                                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                                            {chatMsgs.map(m => (
-                                                <div key={m.id} className="flex justify-end">
-                                                    {m.image ? <img src={m.image} className="max-w-[70%] rounded-xl border border-nexus-primary"/> : <div className="bg-nexus-primary text-white px-4 py-2 rounded-2xl rounded-tr-none max-w-[70%] text-sm">{m.text}</div>}
+                                                <img src={u.avatarUrl} className="w-8 h-8 rounded-full"/>
+                                                <div>
+                                                    <div className="font-bold text-sm">{u.displayName}</div>
+                                                    <div className="text-xs font-mono text-gray-600">{u.friendCode}</div>
                                                 </div>
-                                            ))}
+                                            </div>
+                                            {u.banned ? <Skull size={16} className="text-red-500"/> : <div className="w-2 h-2 bg-green-500 rounded-full"/>}
                                         </div>
-                                        <div className="p-3 bg-nexus-dark border-t border-nexus-primary/10 flex items-center gap-2">
-                                            <input type="file" ref={chatFileRef} hidden onChange={handleChatUpload} accept="image/*"/>
-                                            <Plus size={20} className="text-nexus-muted cursor-pointer hover:text-nexus-primary" onClick={() => chatFileRef.current.click()}/>
-                                            <input onKeyDown={(e) => {if(e.key==='Enter'){setChatMsgs([...chatMsgs, {id: Date.now(), text: e.target.value}]); e.target.value='';}}} placeholder="Zpráva..." className="flex-1 bg-nexus-bg rounded-full px-4 py-2 text-readable outline-none border border-nexus-primary/20"/>
-                                            <Send size={20} className="text-nexus-primary cursor-pointer"/>
+                                    ))}
+                                </div>
+                                <div className="flex-1 bg-[#1a1a1a] p-6 rounded-xl border border-white/10">
+                                    {selectedUser ? (
+                                        <>
+                                            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
+                                                <img src={selectedUser.avatarUrl} className="w-20 h-20 rounded-full"/>
+                                                <div className="flex-1">
+                                                    <h2 className="text-2xl font-bold">{selectedUser.displayName}</h2>
+                                                    <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                                                    <div className="flex gap-2 mt-2">
+                                                        <Input value={newUserId} onChange={e => setNewUserId(e.target.value)} className="h-8 text-xs w-32" />
+                                                        <Button onClick={updateUserCode} className="h-8 py-0 px-3 text-xs">Změnit ID</Button>
+                                                        <Button onClick={() => banUser(selectedUser.uid)} variant="danger" className="h-8 py-0 px-3 text-xs">BAN</Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <h3 className="font-bold mb-2">Historie Postů</h3>
+                                            <div className="space-y-2">
+                                                {userHistory.posts.map(p => (
+                                                    <div key={p.id} className={`p-2 rounded text-sm ${p.deleted ? 'bg-red-900/20 text-red-200' : 'bg-white/5'}`}>
+                                                        {p.content} {p.deleted && "(Smazáno)"}
+                                                    </div>
+                                                ))}
+                                                {userHistory.posts.length === 0 && <div className="text-gray-500 italic">Žádné posty.</div>}
+                                            </div>
+                                        </>
+                                    ) : <div className="flex items-center justify-center h-full text-gray-600">Vyber uživatele</div>}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'crews' && (
+                            <div className="space-y-2">
+                                {crews.map(c => (
+                                    <div key={c.id} className="flex justify-between items-center bg-[#1a1a1a] p-3 rounded border border-white/10">
+                                        <div className="flex items-center gap-3">
+                                            <img src={c.icon} className="w-8 h-8 rounded"/>
+                                            <div>
+                                                <div className="font-bold">{c.name}</div>
+                                                <div className="text-xs text-gray-500">{c.members?.length} members</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="secondary" className="py-1 px-2 text-xs" onClick={() => openGhostView(c)}>Ghost View</Button>
+                                            <Button variant="danger" className="py-1 px-2 text-xs" onClick={() => deleteContent('crews', c.id)}>NUKE</Button>
                                         </div>
                                     </div>
-                                )
-                            )}
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                            {/* SETTINGS */}
-                            {activeTab === 'settings' && <SettingsPanel user={user} onUpdateUser={setUser} />}
-                        </div>
-
-                        {/* Modals */}
-                        <AddContentModal isOpen={showAddContent} onClose={() => setShowAddContent(false)} onPost={handleNewPost} user={user} />
-                        <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} />
-                    </main>
+                    {ghostCrew && (
+                        <Modal title={`Ghost View: ${ghostCrew.name}`} onClose={() => setGhostCrew(null)}>
+                            <div className="h-96 flex flex-col">
+                                <div className="flex-1 flex items-center justify-center text-gray-500 italic">
+                                    (Zde by se načetl chat historie pro {ghostCrew.name} bez členství)
+                                </div>
+                                <div className="p-2 bg-red-900/20 text-red-400 text-xs text-center">Jsi v režimu Ghost. Nikdo tě nevidí.</div>
+                            </div>
+                        </Modal>
+                    )}
                 </div>
             );
         };
 
-        // --- AUTH ---
-        const Auth = () => {
-            const [mode, setMode] = useState('login');
-            const [data, setData] = useState({email:'', pass:''});
-            const [showToS, setShowToS] = useState(false);
-            const [loading, setLoading] = useState(false);
-            const [user, setUser] = useState(null);
+        // 2. CREWS (SERVERS)
+        const Crews = ({ user, allUsers }) => {
+            const [crews, setCrews] = useState([]);
+            const [selectedCrew, setSelectedCrew] = useState(null);
+            const [activeChannel, setActiveChannel] = useState('general');
+            const [showCreate, setShowCreate] = useState(false);
+            const [newCrewName, setNewCrewName] = useState("");
+            const [contextMenu, setContextMenu] = useState(null);
+            const [messages, setMessages] = useState([]);
+            const [msgText, setMsgText] = useState("");
+            const [manageModal, setManageModal] = useState(null);
+            const [newChannelName, setNewChannelName] = useState("");
+            const [attachment, setAttachment] = useState(null);
 
-            const handleSubmit = async (e) => {
-                e.preventDefault(); setLoading(true);
-                try {
-                    const u = await apiFetch('/api/auth/'+mode, {
-                        method: 'POST', body: JSON.stringify({ email: data.email, password: data.pass })
-                    });
-                    if(u && u.user) setUser(u.user);
-                    else alert("Chyba přihlášení");
-                } catch(err) { alert(err.message); }
-                setLoading(false);
+            useEffect(() => {
+                const unsub = onSnapshot(query(collection(db, 'artifacts', _appId, 'public', 'data', 'crews')), snap => {
+                    setCrews(snap.docs.map(d => ({id: d.id, ...d.data()})).filter(c => !c.deleted));
+                });
+                return () => unsub();
+            }, []);
+
+            useEffect(() => {
+                if(!selectedCrew) return;
+                const unsub = onSnapshot(query(collection(db, 'artifacts', _appId, 'public', 'data', 'crews', selectedCrew.id, 'channels', activeChannel, 'messages'), orderBy('createdAt', 'asc')), snap => {
+                    setMessages(snap.docs.map(d => ({id: d.id, ...d.data()})).filter(m => !m.deleted));
+                });
+                return () => unsub();
+            }, [selectedCrew, activeChannel]);
+
+            const handleCreate = async () => {
+                if(!newCrewName) return;
+                await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'crews'), {
+                    name: newCrewName, owner: user.uid, icon: `https://ui-avatars.com/api/?name=${newCrewName}&background=random`,
+                    members: [user.uid], channels: ['general', 'announcements', 'voice']
+                });
+                setShowCreate(false); setNewCrewName("");
             };
 
-            if(user) return <Dashboard user={user} onLogout={() => setUser(null)}/>;
+            const handleAddChannel = async () => {
+                if(!newChannelName || !selectedCrew) return;
+                const newChannels = [...selectedCrew.channels, newChannelName];
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'crews', selectedCrew.id), {
+                    channels: newChannels
+                });
+                setManageModal(null); setNewChannelName("");
+            };
+
+            const handleAttachment = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const url = await handleRealFileUpload(file);
+                setAttachment(url);
+            };
+
+            const sendMessage = async () => {
+                if(!msgText.trim() && !attachment) return;
+                await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'crews', selectedCrew.id, 'channels', activeChannel, 'messages'), {
+                    text: msgText, imageUrl: attachment, authorId: user.uid, createdAt: serverTimestamp()
+                });
+                setMsgText("");
+                setAttachment(null);
+            };
+
+            const handleContextMenu = (e, type, data) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, type, data }); };
+            
+            const handleMessageAction = async (action) => {
+                if(action === 'delete') {
+                    // Soft delete
+                    await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'crews', selectedCrew.id, 'channels', activeChannel, 'messages', contextMenu.data.id), { deleted: true });
+                } else if(action === 'copy') {
+                    navigator.clipboard.writeText(contextMenu.data.text);
+                }
+                setContextMenu(null);
+            };
+
+            const handleChannelAction = async (action) => {
+                if(action === 'delete') {
+                    const newCh = selectedCrew.channels.filter(c => c !== contextMenu.data);
+                    await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'crews', selectedCrew.id), { channels: newCh });
+                    if(activeChannel === contextMenu.data) setActiveChannel('general');
+                }
+                setContextMenu(null);
+            };
+
+            const handleLeave = async () => {
+                if(contextMenu.data.owner === user.uid) return alert("Jako zakladatel nemůžeš odejít. Musíš server smazat.");
+                const newMembers = contextMenu.data.members.filter(m => m !== user.uid);
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'crews', contextMenu.data.id), { members: newMembers });
+                setSelectedCrew(null); setContextMenu(null);
+            };
+
+            const handleDeleteServer = async () => {
+                if(contextMenu.data.owner !== user.uid) return alert("Nejsi majitel!");
+                // Soft delete server
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'crews', contextMenu.data.id), { deleted: true });
+                setContextMenu(null); setSelectedCrew(null);
+            };
 
             return (
-                <div className="min-h-screen flex items-center justify-center p-4 bg-black relative overflow-hidden">
-                    <div className="glass p-8 rounded-3xl w-full max-w-md relative z-10 animate-fade-in border border-white/10">
-                        <div className="flex justify-center mb-6"><Zap size={40} className="text-nexus-primary"/></div>
-                        <h1 className="text-4xl font-black text-center text-white mb-8">NexTalk</h1>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="bg-nexus-dark border border-white/10 rounded-xl p-3 flex items-center gap-3">
-                                <Mail size={20} className="text-nexus-muted"/>
-                                <input type="email" placeholder="Email" value={data.email} onChange={e => setData({...data, email: e.target.value})} className="bg-transparent flex-1 text-white outline-none" required/>
-                            </div>
-                            <div className="bg-nexus-dark border border-white/10 rounded-xl p-3 flex items-center gap-3">
-                                <Lock size={20} className="text-nexus-muted"/>
-                                <input type="password" placeholder="Heslo" value={data.pass} onChange={e => setData({...data, pass: e.target.value})} className="bg-transparent flex-1 text-white outline-none" required/>
-                            </div>
-                            <button disabled={loading} className="w-full bg-nexus-primary py-4 rounded-xl text-white font-bold hover:opacity-90 transition-all flex justify-center items-center gap-2">
-                                {loading ? <Loader2 className="animate-spin"/> : (mode === 'login' ? 'Přihlásit se' : 'Vytvořit účet')}
-                            </button>
-                        </form>
-                        <div className="mt-6 text-center text-xs text-nexus-muted">
-                            <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="text-nexus-primary hover:underline font-bold">
-                                {mode === 'login' ? 'Registrovat se' : 'Přihlásit se'}
-                            </button>
+                <div className="flex h-full bg-[var(--bg-primary)] justify-center">
+                    <div className="w-full max-w-4xl flex flex-col h-full">
+                        <div className="p-6 pb-2 text-center">
+                            <h2 className="text-2xl font-bold mb-4 text-[var(--text-primary)]">Crews</h2>
+                            <Button onClick={() => setShowCreate(true)} className="mb-6 w-full max-w-sm mx-auto">Vytvořit Crew</Button>
                         </div>
-                        <div className="mt-4 text-center">
-                            <button onClick={() => setShowToS(true)} className="text-[10px] text-nexus-muted hover:text-white uppercase tracking-widest">Pravidla (ToS)</button>
+
+                        <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-20 custom-scrollbar">
+                            {crews.filter(c => c.members.includes(user.uid)).map(crew => (
+                                <div key={crew.id} className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl overflow-hidden transition-all">
+                                    <div className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-[var(--bg-tertiary)] ${selectedCrew?.id === crew.id ? 'bg-[var(--bg-tertiary)]' : ''}`} onClick={() => setSelectedCrew(selectedCrew?.id === crew.id ? null : crew)} onContextMenu={(e) => handleContextMenu(e, 'crew', crew)}>
+                                        <img src={crew.icon} className="w-14 h-14 rounded-xl object-cover"/>
+                                        <div className="flex-1">
+                                            <div className="font-bold text-lg text-[var(--text-primary)]">{crew.name}</div>
+                                            <div className="text-sm text-[var(--text-secondary)]">{crew.members.length} členů</div>
+                                        </div>
+                                        <ChevronRight className={`transition-transform duration-300 text-[var(--text-secondary)] ${selectedCrew?.id === crew.id ? 'rotate-90' : ''}`}/>
+                                    </div>
+
+                                    {selectedCrew?.id === crew.id && (
+                                        <div className="border-t border-[var(--border)] bg-[var(--bg-primary)] animate-in slide-in-from-top-2 duration-200">
+                                            <div className="p-2 grid grid-cols-3 gap-2">
+                                                {crew.channels.map(ch => (
+                                                    <div key={ch} onClick={() => setActiveChannel(ch)} onContextMenu={(e) => handleContextMenu(e, 'channel', ch)} className={`p-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition ${activeChannel === ch ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                                                        {ch === 'voice' ? <Volume2 size={16}/> : <Hash size={16}/>} {ch}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            <div className="h-96 flex flex-col bg-[var(--bg-secondary)] m-2 rounded-xl border border-[var(--border)]">
+                                                <div className="p-3 border-b border-[var(--border)] font-bold text-[var(--text-primary)] flex items-center gap-2"><Hash size={16}/> {activeChannel}</div>
+                                                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                                    {messages.map(msg => (
+                                                        <div key={msg.id} onContextMenu={(e) => handleContextMenu(e, 'message', msg)} className={`flex gap-3 ${msg.authorId === user.uid ? 'flex-row-reverse' : ''}`}>
+                                                            <img src={allUsers[msg.authorId]?.avatarUrl} className="w-8 h-8 rounded-full mt-1"/>
+                                                            <div className={`px-4 py-2 rounded-2xl max-w-[80%] text-sm ${msg.authorId === user.uid ? 'bg-[var(--msg-me)] text-white' : 'bg-[var(--msg-them)] text-[var(--text-primary)]'}`}>
+                                                                {msg.imageUrl && <img src={msg.imageUrl} className="max-w-full rounded-lg mb-2 border border-white/10" />}
+                                                                {msg.text}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {attachment && (
+                                                    <div className="mx-4 mb-2 p-2 bg-[var(--bg-tertiary)] rounded-lg flex items-center gap-2 border border-[var(--accent)]">
+                                                        <div className="w-10 h-10 bg-black/50 rounded overflow-hidden"><img src={attachment} className="w-full h-full object-cover"/></div>
+                                                        <span className="text-xs text-[var(--text-secondary)] flex-1">Obrázek připraven</span>
+                                                        <button onClick={() => setAttachment(null)}><X size={16} className="text-red-400"/></button>
+                                                    </div>
+                                                )}
+                                                <div className="p-3 bg-[var(--bg-tertiary)] m-2 rounded-xl flex gap-2 items-center">
+                                                    <div className="relative group">
+                                                        <Paperclip size={20} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"/>
+                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleAttachment} />
+                                                    </div>
+                                                    <input value={msgText} onChange={e => setMsgText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder={`Zpráva...`} className="bg-transparent flex-1 outline-none text-[var(--text-primary)]"/>
+                                                    <button onClick={sendMessage}><Send className="text-[var(--accent)]"/></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     </div>
-                    <ToSModal isOpen={showToS} onClose={() => setShowToS(false)} />
+
+                    {contextMenu && (
+                        <div className="fixed z-50 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-lg w-48 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100" style={{top: contextMenu.y, left: contextMenu.x}}>
+                            {contextMenu.type === 'crew' && (
+                                <>
+                                    <div className="px-4 py-2 border-b border-[var(--border)] font-bold text-sm text-[var(--text-primary)]">{contextMenu.data.name}</div>
+                                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]" onClick={() => { setManageModal('players'); setContextMenu(null); }}>Hráči</button>
+                                    {contextMenu.data.owner === user.uid && <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]" onClick={() => { setManageModal('manage'); setContextMenu(null); }}>Spravovat</button>}
+                                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-red-400" onClick={handleLeave}>Opustit</button>
+                                    {contextMenu.data.owner === user.uid && <button onClick={handleDeleteServer} className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-red-500 font-bold">Odstranit</button>}
+                                </>
+                            )}
+                            {contextMenu.type === 'channel' && (
+                                <>
+                                    <div className="px-4 py-2 border-b border-[var(--border)] font-bold text-sm text-[var(--text-primary)]">#{contextMenu.data}</div>
+                                    {selectedCrew.owner === user.uid && (
+                                        <>
+                                            <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]">Přejmenovat</button>
+                                            <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-red-400" onClick={() => handleChannelAction('delete')}>Odstranit</button>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                            {contextMenu.type === 'message' && (
+                                <>
+                                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]" onClick={() => handleMessageAction('copy')}>Kopírovat</button>
+                                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-red-400" onClick={() => handleMessageAction('delete')}>Vymazat</button>
+                                </>
+                            )}
+                            <div className="fixed inset-0 -z-10" onClick={() => setContextMenu(null)}></div>
+                        </div>
+                    )}
+
+                    {showCreate && (
+                        <Modal title="Vytvořit Crew" onClose={() => setShowCreate(false)}>
+                            <div className="space-y-4">
+                                <Input placeholder="Název Crew" value={newCrewName} onChange={e => setNewCrewName(e.target.value)} />
+                                <Button onClick={handleCreate} className="w-full">Vytvořit svět</Button>
+                            </div>
+                        </Modal>
+                    )}
+                    {manageModal === 'manage' && (
+                        <Modal title={`Správa: ${selectedCrew?.name}`} onClose={() => setManageModal(null)}>
+                            <div className="space-y-4">
+                                <div className="text-sm opacity-50 uppercase">Vytvořit Kanál</div>
+                                <div className="flex gap-2">
+                                    <Input placeholder="Název kanálu" value={newChannelName} onChange={e => setNewChannelName(e.target.value)} />
+                                    <select className="bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-xl px-2 outline-none border border-[var(--border)]" value={newChannelType} onChange={e => setNewChannelType(e.target.value)}>
+                                        <option value="text">Text</option>
+                                        <option value="voice">Hlas</option>
+                                    </select>
+                                </div>
+                                <Button onClick={handleAddChannel} className="w-full">Přidat</Button>
+                            </div>
+                        </Modal>
+                    )}
+                    {manageModal === 'players' && (
+                        <Modal title="Seznam hráčů" onClose={() => setManageModal(null)}>
+                            <div className="space-y-2">
+                                {selectedCrew?.members?.map(mid => (
+                                    <div key={mid} className="flex items-center gap-2 p-2 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
+                                        <img src={allUsers[mid]?.avatarUrl} className="w-8 h-8 rounded-full"/>
+                                        <span>{allUsers[mid]?.displayName}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </Modal>
+                    )}
+                </div>
+            );
+        };
+
+        // 3. FRIENDS
+        const FriendsView = ({ currentUser, allUsers }) => {
+            const [friendCode, setFriendCode] = useState("");
+            const [showAdd, setShowAdd] = useState(false);
+            const [activeChat, setActiveChat] = useState(null);
+            const [contextMenu, setContextMenu] = useState(null);
+            const [showProfile, setShowProfile] = useState(null);
+            const [chatMsgs, setChatMsgs] = useState([]);
+            const [text, setText] = useState("");
+            const [isTyping, setIsTyping] = useState(false);
+
+            const friends = currentUser.friends?.map(uid => ({uid, ...allUsers[uid]})).filter(u => u.displayName) || [];
+
+            useEffect(() => {
+                if(!activeChat) return;
+                const unsub = onSnapshot(query(collection(db, 'artifacts', _appId, 'public', 'data', 'messages'), orderBy('createdAt', 'asc')), snap => {
+                    const msgs = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(m => (m.from === currentUser.uid && m.to === activeChat.uid) || (m.from === activeChat.uid && m.to === currentUser.uid));
+                    setChatMsgs(msgs);
+                    if(msgs.length > 0 && msgs[msgs.length-1].from === currentUser.uid) {
+                        setIsTyping(true); setTimeout(() => setIsTyping(false), 2000);
+                    }
+                });
+                return () => unsub();
+            }, [activeChat]);
+
+            const sendMessage = async () => {
+                if(!text.trim()) return;
+                await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'messages'), { from: currentUser.uid, to: activeChat.uid, text, createdAt: serverTimestamp() });
+                setText("");
+            };
+
+            const addFriend = async () => {
+                const target = Object.values(allUsers).find(u => u.friendCode === friendCode);
+                if(target) {
+                    await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', currentUser.uid), { friends: [...currentUser.friends, target.uid] });
+                    sendNotificationEmail(target.email, "Nová žádost", "Žádost o přátelství", `${currentUser.displayName} si tě přidal!`);
+                    setShowAdd(false);
+                } else alert("Nenalezen");
+            };
+
+            const handleBlock = async (uid) => {
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', currentUser.uid), { blocked: [...currentUser.blocked, uid] });
+                setContextMenu(null);
+            };
+
+            if(activeChat) {
+                return (
+                    <div className="flex flex-col h-full bg-[var(--bg-primary)]">
+                        <div className="h-16 border-b border-[var(--border)] flex items-center px-6 gap-4 bg-[var(--bg-secondary)]">
+                            <button onClick={() => setActiveChat(null)}><ChevronLeft className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"/></button>
+                            <img src={activeChat.avatarUrl} className="w-10 h-10 rounded-full"/>
+                            <div className="font-bold text-[var(--text-primary)]">{activeChat.displayName}</div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-2">
+                            {chatMsgs.map(m => (
+                                <div key={m.id} className={`flex gap-2 items-end ${m.from === currentUser.uid ? 'justify-end' : 'justify-start'}`}>
+                                    {m.from !== currentUser.uid && <img src={activeChat.avatarUrl} className="w-6 h-6 rounded-full mb-1"/>}
+                                    <div className={`px-4 py-2 rounded-2xl max-w-[70%] text-sm ${m.from === currentUser.uid ? 'bg-[var(--msg-me)] text-white' : 'bg-[var(--msg-them)] text-[var(--text-primary)]'}`}>
+                                        {m.text}
+                                    </div>
+                                </div>
+                            ))}
+                            {isTyping && (
+                                <div className="flex gap-2 items-end">
+                                    <img src={activeChat.avatarUrl} className="w-6 h-6 rounded-full mb-1"/>
+                                    <div className="px-4 py-3 rounded-2xl bg-[var(--msg-them)] flex gap-1 items-center h-9">
+                                        <div className="w-1.5 h-1.5 bg-[var(--text-secondary)] rounded-full typing-dot"></div>
+                                        <div className="w-1.5 h-1.5 bg-[var(--text-secondary)] rounded-full typing-dot"></div>
+                                        <div className="w-1.5 h-1.5 bg-[var(--text-secondary)] rounded-full typing-dot"></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4"><div className="bg-[var(--bg-tertiary)] rounded-full flex items-center p-1 px-2 border border-[var(--border)]"><input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} className="bg-transparent flex-1 px-4 py-2 text-[var(--text-primary)] outline-none" placeholder="Zpráva..." /><button onClick={sendMessage} className="p-2 rounded-full bg-[var(--msg-me)] text-white"><Send size={18}/></button></div></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="p-8 h-full overflow-y-auto bg-[var(--bg-primary)]">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex-1 max-w-2xl relative">
+                            <Search className="absolute left-3 top-3 text-[var(--text-secondary)] w-5 h-5" />
+                            <input placeholder="Hledat konverzace..." className="w-full bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none border border-[var(--border)] focus:border-[var(--accent)] transition" />
+                        </div>
+                        <Button onClick={() => setShowAdd(true)} className="ml-4"><UserPlus size={18} className="inline mr-2"/> Přidat</Button>
+                    </div>
+
+                    <div className="text-xs font-bold text-[var(--text-secondary)] uppercase mb-4 tracking-wider">Seznam přátel</div>
+                    <div className="space-y-2">
+                        {friends.map(friend => (
+                            <div key={friend.uid} className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-xl flex items-center gap-4 hover:border-[var(--accent)] transition group">
+                                <div className="relative">
+                                    <img src={friend.avatarUrl} className="w-12 h-12 rounded-full bg-[var(--bg-tertiary)]"/>
+                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--bg-secondary)]"></div>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="font-bold text-[var(--text-primary)]">{friend.displayName}</div>
+                                    <div className="text-xs text-[var(--text-secondary)]">Online</div>
+                                </div>
+                                <div className="flex items-center gap-4 opacity-80">
+                                    <button onClick={() => setActiveChat(friend)} className="text-[var(--accent)] font-bold text-sm hover:underline">Chat</button>
+                                    <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><Phone size={20}/></button>
+                                    <div className="relative">
+                                        <button onClick={() => setContextMenu(friend.uid)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><MoreVertical size={20}/></button>
+                                        {contextMenu === friend.uid && (
+                                            <div className="absolute right-0 top-full mt-2 w-40 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl z-50 py-1" onMouseLeave={() => setContextMenu(null)}>
+                                                <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]">Zobrazit profil</button>
+                                                <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-red-400">Odstranit přítele</button>
+                                                <button className="w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-tertiary)] text-red-400">Zablokovat</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {showAdd && (
+                        <Modal title="Přidat přítele" onClose={() => setShowAdd(false)}>
+                            <div className="space-y-4">
+                                <div className="bg-[var(--bg-tertiary)] p-4 rounded text-center"><div className="text-sm text-[var(--text-secondary)]">Tvůj kód</div><div className="text-xl font-mono text-[var(--accent)]">{currentUser.friendCode}</div></div>
+                                <Input placeholder="Kód přítele (ABC-012345)" value={friendCode} onChange={e => setFriendCode(e.target.value)} />
+                                <Button onClick={addFriend} className="w-full">Odeslat žádost</Button>
+                            </div>
+                        </Modal>
+                    )}
+
+                    {showProfile && (
+                        <Modal title="Profil" onClose={() => setShowProfile(null)}>
+                            <div className="text-center">
+                                <img src={showProfile.avatarUrl} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-[var(--bg-tertiary)]"/>
+                                <h2 className="text-xl font-bold text-[var(--text-primary)]">{showProfile.displayName}</h2>
+                                <div className="text-[var(--text-secondary)] font-mono mb-4">{showProfile.friendCode}</div>
+                                <p className="bg-[var(--bg-tertiary)] p-3 rounded-xl text-[var(--text-primary)]">{showProfile.bio || "Žádné bio."}</p>
+                            </div>
+                        </Modal>
+                    )}
+                </div>
+            );
+        };
+
+        // 4. FEED
+        const Feed = ({ user, allUsers }) => {
+            const [posts, setPosts] = useState([]);
+            const [stories, setStories] = useState([]);
+            const [newPostText, setNewPostText] = useState("");
+            const [viewingStory, setViewingStory] = useState(null);
+            const [notifications, setNotifications] = useState(0);
+            const [commentInput, setCommentInput] = useState({});
+            const [showComments, setShowComments] = useState({});
+            const [storyReply, setStoryReply] = useState("");
+
+            useEffect(() => {
+                const q1 = query(collection(db, 'artifacts', _appId, 'public', 'data', 'posts'), orderBy('createdAt', 'desc'));
+                const unsub = onSnapshot(q1, snap => setPosts(snap.docs.map(d => ({id: d.id, ...d.data()})).filter(p => !p.deleted)));
+                
+                const q2 = query(collection(db, 'artifacts', _appId, 'public', 'data', 'stories'), orderBy('createdAt', 'desc'));
+                const unsubStories = onSnapshot(q2, snap => {
+                    const now = Date.now();
+                    const validStories = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(s => {
+                        if (s.deleted) return false; // Filter deleted stories
+                        if (!s.createdAt) return false;
+                        const time = s.createdAt.toMillis();
+                        return (now - time) < (24 * 60 * 60 * 1000);
+                    });
+
+                    const grouped = validStories.reduce((acc, s) => {
+                        if(!acc[s.authorId]) acc[s.authorId] = [];
+                        acc[s.authorId].push(s);
+                        return acc;
+                    }, {});
+                    setStories(grouped);
+                });
+                
+                return () => { unsub(); unsubStories(); };
+            }, []);
+
+            const handleUpload = async (e, type) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const url = await handleRealFileUpload(file);
+                
+                if (type === 'story') {
+                    await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'stories'), {
+                        authorId: user.uid, imageUrl: url, createdAt: serverTimestamp(), viewers: []
+                    });
+                } else {
+                    await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'posts'), {
+                        authorId: user.uid, authorName: user.displayName, authorAvatar: user.avatarUrl,
+                        content: newPostText, imageUrl: url, likes: [], comments: [], createdAt: serverTimestamp()
+                    });
+                    setNewPostText("");
+                }
+            };
+
+            const handlePost = async () => {
+                if(!newPostText) return;
+                await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'posts'), {
+                        authorId: user.uid, authorName: user.displayName, authorAvatar: user.avatarUrl,
+                        content: newPostText, imageUrl: null, likes: [], comments: [], createdAt: serverTimestamp()
+                });
+                setNewPostText("");
+            };
+
+            const handleDeletePost = async (pid) => { await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'posts', pid), { deleted: true }); };
+
+            const toggleLike = async (post) => {
+                const postRef = doc(db, 'artifacts', _appId, 'public', 'data', 'posts', post.id);
+                let newLikes = post.likes || [];
+                if (newLikes.includes(user.uid)) newLikes = newLikes.filter(id => id !== user.uid);
+                else newLikes.push(user.uid);
+                await updateDoc(postRef, { likes: newLikes });
+            };
+
+            const sendComment = async (postId) => {
+                if (!commentInput[postId]) return;
+                const postRef = doc(db, 'artifacts', _appId, 'public', 'data', 'posts', postId);
+                const newComment = {
+                    id: crypto.randomUUID(), // Native UUID
+                    uid: user.uid,
+                    text: commentInput[postId],
+                    createdAt: Date.now()
+                };
+                const post = posts.find(p => p.id === postId);
+                const currentComments = post.comments || [];
+                await updateDoc(postRef, { comments: [...currentComments, newComment] });
+                setCommentInput({...commentInput, [postId]: ""});
+            };
+            
+            const deleteComment = async (postId, commentId) => {
+                const postRef = doc(db, 'artifacts', _appId, 'public', 'data', 'posts', postId);
+                const post = posts.find(p => p.id === postId);
+                const currentComments = post.comments || [];
+                const updatedComments = currentComments.filter(c => c.id !== commentId);
+                await updateDoc(postRef, { comments: updatedComments });
+            };
+
+            const openStory = async (uid, list) => {
+                const story = list[0];
+                setViewingStory({ uid, index: 0, list });
+                if (story.authorId !== user.uid && !story.viewers?.includes(user.uid)) {
+                    const storyRef = doc(db, 'artifacts', _appId, 'public', 'data', 'stories', story.id);
+                    await updateDoc(storyRef, { viewers: arrayUnion(user.uid) });
+                }
+            };
+
+            const deleteStory = async () => {
+                const currentStory = viewingStory.list[viewingStory.index];
+                if (currentStory.authorId !== user.uid) return;
+                // Soft delete story
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'stories', currentStory.id), { deleted: true });
+                setViewingStory(null);
+            };
+
+            const replyToStory = async () => {
+                if (!storyReply.trim()) return;
+                const currentStory = viewingStory.list[viewingStory.index];
+                await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'messages'), { 
+                    from: user.uid, 
+                    to: currentStory.authorId, 
+                    text: `Reagoval na story: ${storyReply}`, 
+                    createdAt: serverTimestamp() 
+                });
+                setStoryReply("");
+                alert("Odesláno!");
+            };
+
+            const toggleViewers = (story) => {
+                if (story.authorId !== user.uid) return;
+                const names = story.viewers?.map(vUid => allUsers[vUid]?.displayName).filter(Boolean).join(", ") || "Nikdo";
+                alert(`Viděli to: ${names}`);
+            };
+
+            return (
+                <div className="h-full overflow-y-auto p-8 bg-[var(--bg-primary)]">
+                    <div className="max-w-2xl mx-auto space-y-8">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold text-[var(--text-primary)]">Feed</h2>
+                            <div className="relative cursor-pointer">
+                                <div className={`p-2 rounded-full hover:bg-[var(--bg-tertiary)] ${notifications > 0 ? 'animate-bell text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                                    <Bell size={24}/>
+                                </div>
+                                {notifications > 0 && <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-[var(--accent)] rounded-full border-2 border-[var(--bg-primary)]"/>}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                            <div className="flex flex-col items-center gap-2 cursor-pointer group relative flex-shrink-0">
+                                <div className="w-[70px] h-[70px] rounded-full border-2 border-dashed border-[var(--text-secondary)] flex items-center justify-center bg-[var(--bg-secondary)] overflow-hidden relative group-hover:border-[var(--accent)] transition">
+                                    <Plus className="text-[var(--text-secondary)]"/>
+                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleUpload(e, 'story')} />
+                                </div>
+                                <span className="text-xs text-[var(--text-secondary)]">Přidat</span>
+                            </div>
+                            {Object.entries(stories).map(([uid, list]) => {
+                                const hasUnseen = list.some(s => !s.viewers?.includes(user.uid));
+                                return (
+                                    <div key={uid} className="flex flex-col items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => openStory(uid, list)}>
+                                        <div className={`p-[2px] rounded-full ${hasUnseen ? 'story-ring-new' : 'story-ring-seen'}`}>
+                                            <div className="p-[2px] bg-[var(--bg-primary)] rounded-full">
+                                                <img src={allUsers[uid]?.avatarUrl} className="w-[62px] h-[62px] rounded-full object-cover"/>
+                                            </div>
+                                        </div>
+                                        <span className="text-xs truncate w-16 text-center text-[var(--text-primary)]">{allUsers[uid]?.displayName}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <GlassCard className="p-6 rounded-2xl">
+                            <div className="flex gap-4">
+                                <img src={user.avatarUrl} className="w-12 h-12 rounded-full"/>
+                                <div className="flex-1 space-y-3">
+                                    <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Co se děje?" className="w-full bg-transparent text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none resize-none"/>
+                                    <div className="flex justify-between pt-2 border-t border-[var(--border)]">
+                                        <div className="relative overflow-hidden group">
+                                            <button className="flex items-center gap-2 text-[var(--accent)] text-sm hover:bg-[var(--bg-tertiary)] px-3 py-1 rounded-lg transition"><ImageIcon size={16}/> Fotka</button>
+                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleUpload(e, 'post')} />
+                                        </div>
+                                        <Button onClick={handlePost} className="py-1 px-4 text-sm">Post</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </GlassCard>
+
+                        <div className="space-y-6 pb-20">
+                            {posts.map(p => (
+                                <GlassCard key={p.id} className="p-0 rounded-2xl overflow-hidden">
+                                    <div className="p-5">
+                                        <div className="flex justify-between mb-4">
+                                            <div className="flex gap-3">
+                                                <img src={p.authorAvatar} className="w-10 h-10 rounded-full"/>
+                                                <div><div className="font-bold text-[var(--text-primary)]">{p.authorName}</div><div className="text-xs text-[var(--text-secondary)]">Nyní</div></div>
+                                            </div>
+                                            {p.authorId === user.uid && <button onClick={(e) => { e.stopPropagation(); handleDeletePost(p.id); }} className="text-[var(--text-secondary)] hover:text-red-400"><Trash2 size={18}/></button>}
+                                        </div>
+                                        <p className="mb-4 text-[var(--text-primary)] opacity-90">{p.content}</p>
+                                        {p.imageUrl && <img src={p.imageUrl} className="w-full rounded-xl mb-4 max-h-[500px] object-cover"/>}
+                                        <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
+                                            <Heart size={12} fill={p.likes?.includes(user.uid) ? "currentColor" : "none"} className={p.likes?.includes(user.uid) ? "text-red-500" : ""}/> 
+                                            {p.likes?.length || 0}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-black/20 p-3 px-6 flex gap-6 border-t border-[var(--border)]">
+                                        <button onClick={() => toggleLike(p)} className={`flex items-center gap-2 text-sm transition ${p.likes?.includes(user.uid) ? 'text-red-500' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                                            <Heart size={18} fill={p.likes?.includes(user.uid) ? "currentColor" : "none"}/> Like
+                                        </button>
+                                        <button onClick={() => setShowComments({...showComments, [p.id]: !showComments[p.id]})} className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                                            <MessageCircle size={18}/> Komentáře ({p.comments?.length || 0})
+                                        </button>
+                                    </div>
+
+                                    {showComments[p.id] && (
+                                        <div className="p-4 bg-[var(--bg-tertiary)] border-t border-[var(--border)]">
+                                            <div className="space-y-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
+                                                {p.comments?.map((c, idx) => (
+                                                    <div key={idx} className="flex gap-2 justify-between group">
+                                                        <div className="flex gap-2">
+                                                            <span className="font-bold text-xs text-[var(--accent)]">{allUsers[c.uid]?.displayName}:</span>
+                                                            <span className="text-xs text-[var(--text-primary)]">{c.text}</span>
+                                                        </div>
+                                                        {(c.uid === user.uid || p.authorId === user.uid) && (
+                                                            <button onClick={() => deleteComment(p.id, c.id)} className="text-[var(--text-secondary)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition"><Trash2 size={12}/></button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {(!p.comments || p.comments.length === 0) && <div className="text-xs text-[var(--text-secondary)]">Žádné komentáře.</div>}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    className="flex-1 bg-[var(--bg-secondary)] rounded-lg px-3 py-1 text-sm outline-none text-[var(--text-primary)]"
+                                                    placeholder="Napiš komentář..."
+                                                    value={commentInput[p.id] || ""}
+                                                    onChange={e => setCommentInput({...commentInput, [p.id]: e.target.value})}
+                                                    onKeyDown={e => e.key === 'Enter' && sendComment(p.id)}
+                                                />
+                                                <button onClick={() => sendComment(p.id)} className="text-[var(--accent)]"><Send size={16}/></button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </GlassCard>
+                            ))}
+                        </div>
+                    </div>
+
+                    {viewingStory && (
+                        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setViewingStory(null)}>
+                            <div className="w-full max-w-md h-full md:h-[80vh] bg-[#1a1a1a] relative md:rounded-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                                <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/80">
+                                    <div className="flex gap-1 h-1 mb-2">
+                                        {viewingStory.list.map((_, i) => <div key={i} className={`flex-1 rounded-full ${i === viewingStory.index ? 'bg-white animate-progress' : 'bg-white/20'}`}></div>)}
+                                    </div>
+                                    <div className="flex gap-2 items-center text-white justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <img src={allUsers[viewingStory.uid]?.avatarUrl} className="w-8 h-8 rounded-full"/>
+                                            <span className="font-bold">{allUsers[viewingStory.uid]?.displayName}</span>
+                                        </div>
+                                        <button onClick={() => setViewingStory(null)}><X className="text-white"/></button>
+                                    </div>
+                                </div>
+                                <div className="flex-1 relative">
+                                    <img src={viewingStory.list[viewingStory.index].imageUrl} className="w-full h-full object-cover"/>
+                                </div>
+                                
+                                <div className="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black/90 flex items-center justify-between gap-4">
+                                    {viewingStory.uid === user.uid ? (
+                                        <>
+                                            <button onClick={() => toggleViewers(viewingStory.list[viewingStory.index])} className="flex items-center gap-2 text-white/80 hover:text-white">
+                                                <Eye size={20}/> <span className="text-sm">{viewingStory.list[viewingStory.index].viewers?.length || 0}</span>
+                                            </button>
+                                            <button onClick={deleteStory} className="text-red-400 hover:text-red-300"><Trash2 size={20}/></button>
+                                        </>
+                                    ) : (
+                                        <div className="flex-1 flex gap-2">
+                                            <input 
+                                                className="flex-1 bg-white/10 rounded-full px-4 py-2 text-white outline-none placeholder-white/50 border border-white/10"
+                                                placeholder="Odpovědět..."
+                                                value={storyReply}
+                                                onChange={e => setStoryReply(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && replyToStory()}
+                                            />
+                                            <button onClick={replyToStory} className="p-2 bg-[var(--accent)] rounded-full text-white"><Send size={18}/></button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [allUsers, setAllUsers] = useState({});
+            const [view, setView] = useState('feed');
+            const [showSettings, setShowSettings] = useState(false);
+
+            useEffect(() => {
+                let unsubSnapshot = null; // Store snapshot unsubscribe
+
+                const unsubAuth = onAuthStateChanged(auth, async (u) => {
+                    if (u) {
+                        // Kill previous snapshot listener if exists
+                        if (unsubSnapshot) unsubSnapshot();
+
+                        const userDocRef = doc(db, 'artifacts', _appId, 'public', 'data', 'users', u.uid);
+                        
+                        unsubSnapshot = onSnapshot(userDocRef, async (docSnap) => {
+                            if (docSnap.exists()) {
+                                const data = docSnap.data();
+                                // --- MIGRATION: Fix old friend codes ---
+                                const codeRegex = /^[A-Z]{3}-\d{6}$/;
+                                if (!data.friendCode || !codeRegex.test(data.friendCode)) {
+                                    console.log("Migrating old friend code...");
+                                    const newCode = generateFriendCode();
+                                    await updateDoc(userDocRef, { friendCode: newCode });
+                                    data.friendCode = newCode;
+                                }
+                                setUser({...data, isVerified: u.emailVerified});
+                            } else {
+                                // --- SELF HEALING ---
+                                // If Auth works but Firestore profile is missing (e.g. app version change), recreate it.
+                                try {
+                                    await setDoc(userDocRef, {
+                                        uid: u.uid,
+                                        email: u.email,
+                                        displayName: u.displayName || u.email.split('@')[0],
+                                        friendCode: generateFriendCode(),
+                                        avatarUrl: getAvatar(u.uid),
+                                        status: 'online',
+                                        friends: [],
+                                        blocked: [],
+                                        bio: "Welcome to NexTalk",
+                                        theme: 'dark',
+                                        joinedAt: serverTimestamp()
+                                    });
+                                } catch (e) {
+                                    console.error("Auto-recovery failed:", e);
+                                    // Fallback to minimal user to allow app entry
+                                    setUser({
+                                        uid: u.uid,
+                                        email: u.email,
+                                        displayName: 'User',
+                                        friendCode: '####',
+                                        avatarUrl: '',
+                                        status: 'online',
+                                        friends: [],
+                                        isVerified: u.emailVerified
+                                    });
+                                }
+                            }
+                        });
+                    } else {
+                        if (unsubSnapshot) unsubSnapshot();
+                        setUser(null);
+                    }
+                });
+                return () => {
+                    unsubAuth();
+                    if (unsubSnapshot) unsubSnapshot();
+                };
+            }, []);
+
+            useEffect(() => {
+                const unsub = onSnapshot(collection(db, 'artifacts', _appId, 'public', 'data', 'users'), s => { const m = {}; s.forEach(d => m[d.id] = {uid: d.id, ...d.data()}); setAllUsers(m); });
+                return () => unsub();
+            }, []);
+
+            if (!user) return <AuthScreen onLogin={() => {}} />;
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    <ThemeInjector theme={user.theme} customColors={user.customColors} />
+                    <nav className="w-20 bg-[var(--bg-secondary)] border-r border-[var(--border)] flex flex-col items-center py-6 gap-6 z-20">
+                        <div className="w-12 h-12 bg-gradient-to-tr from-[var(--accent)] to-purple-400 rounded-xl flex items-center justify-center shadow-lg"><Zap className="text-white"/></div>
+                        <button onClick={() => setView('feed')} className={`p-3 rounded-xl transition ${view === 'feed' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}><Hash/></button>
+                        <button onClick={() => setView('friends')} className={`p-3 rounded-xl transition ${view === 'friends' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}><Users/></button>
+                        <button onClick={() => setView('crews')} className={`p-3 rounded-xl transition ${view === 'crews' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}><Globe/></button>
+                        {user.isAdmin && <button onClick={() => setView('admin')} className={`p-3 rounded-xl transition ${view === 'admin' ? 'bg-red-600 text-white' : 'text-[var(--text-secondary)] hover:text-red-500'}`}><Shield/></button>}
+                        <div className="mt-auto flex flex-col gap-4"><button onClick={() => setShowSettings(true)}><Settings className="text-[var(--text-secondary)]"/></button><button onClick={() => signOut(auth)}><LogOut className="text-[var(--text-secondary)] hover:text-red-400"/></button></div>
+                    </nav>
+                    <main className="flex-1 bg-[var(--bg-primary)] overflow-hidden relative">
+                        {view === 'feed' && <Feed user={user} allUsers={allUsers} />}
+                        {view === 'friends' && <FriendsView currentUser={user} allUsers={allUsers} />}
+                        {view === 'crews' && <Crews user={user} allUsers={allUsers} />}
+                        {view === 'admin' && user.isAdmin && <AdminDashboard user={user} allUsers={allUsers} />}
+                    </main>
+                    {showSettings && <SettingsModal user={user} onClose={() => setShowSettings(false)} />}
                 </div>
             );
         };
 
         const root = createRoot(document.getElementById('root'));
-        root.render(<Auth />);
+        root.render(<App />);
     </script>
 </body>
 </html>
