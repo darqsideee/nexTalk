@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexTalk - Login</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+        }
+    }
+    </script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #0f0f13;
+            color: #ffffff;
+        }
+    </style>
+</head>
+
+<body class="h-screen overflow-hidden selection:bg-[#7A4DFF] selection:text-white">
+
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { User, Lock, Mail, AlertTriangle, CheckCircle } from 'lucide-react';
+        import { initializeApp } from 'firebase/app';
+        import {
+            getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+            onAuthStateChanged, sendEmailVerification, sendPasswordResetEmail
+        } from 'firebase/auth';
+        import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyClqVa0abAGdbWre1SgNQ_LPE3OhFgwqC4",
+            authDomain: "nextalk-4cb86.firebaseapp.com",
+            projectId: "nextalk-4cb86",
+            storageBucket: "nextalk-4cb86.firebasestorage.app",
+            messagingSenderId: "894596255124",
+            appId: "1:894596255124:web:6fdd8b80b8e96fc9aad381",
+            measurementId: "G-M8EDS7KCE2"
+        };
+
+        const _appId = 'nextalk-production-v11';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const generateFriendCode = () => {
+            const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const prefix = Array(3).fill(0).map(() => letters[Math.floor(Math.random() * letters.length)]).join('');
+            const suffix = Math.floor(100000 + Math.random() * 900000).toString();
+            return `${prefix}-${suffix}`;
+        };
+
+        const getAvatar = (uid) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}&backgroundColor=b6e3f4`;
+
+        const GlassCard = ({ children, className = "" }) => (
+            <div className={`backdrop-blur-xl bg-[#18181b] border border-white/5 shadow-xl rounded-2xl ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Button = ({ children, onClick, className = "", loading }) => (
+            <button onClick={onClick} disabled={loading} className={`px-4 py-3 rounded-xl font-bold transition-all active:scale-95 bg-[#7A4DFF] text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}>
+                {loading ? 'Načítání...' : children}
+            </button>
+        );
+
+        const Input = ({ type = "text", placeholder, value, onChange, icon: Icon }) => (
+            <div className="relative w-full">
+                {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />}
+                <input
+                    type={type}
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={onChange}
+                    className="w-full bg-[#27272a] border border-white/5 rounded-xl py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7A4DFF] focus:ring-1 focus:ring-[#7A4DFF] transition-all pl-12"
+                />
+            </div>
+        );
+
+        const AuthScreen = () => {
+            const [mode, setMode] = useState('login');
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+            const [username, setUsername] = useState("");
+            const [error, setError] = useState("");
+            const [successMsg, setSuccessMsg] = useState("");
+            const [loading, setLoading] = useState(false);
+
+            useEffect(() => {
+                const unsub = onAuthStateChanged(auth, (user) => {
+                    if (user && user.emailVerified) {
+                        window.location.href = '../feed/feed.html';
+                    }
+                });
+                return () => unsub();
+            }, []);
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setError(""); setLoading(true);
+                try {
+                    if (mode === 'register') {
+                        if (username.length < 3) throw new Error("Jméno je příliš krátké");
+                        const cred = await createUserWithEmailAndPassword(auth, email, password);
+                        await sendEmailVerification(cred.user);
+                        await setDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', cred.user.uid), {
+                            uid: cred.user.uid, email, displayName: username, friendCode: generateFriendCode(),
+                            avatarUrl: getAvatar(cred.user.uid), status: 'online', friends: [], blocked: [], bio: "Nový člen NexTalk", theme: 'dark', joinedAt: serverTimestamp(), isAdmin: false
+                        });
+                        setMode('await_verify');
+                    } else if (mode === 'login') {
+                        const cred = await signInWithEmailAndPassword(auth, email, password);
+                        if (!cred.user.emailVerified) {
+                            // Don't sign out immediately, let them see the verify screen
+                            setMode('await_verify');
+                        } else {
+                            window.location.href = '../feed/feed.html';
+                        }
+                    } else if (mode === 'reset') {
+                        await sendPasswordResetEmail(auth, email);
+                        setSuccessMsg(`Odkaz odeslán na ${email}.`); setMode('login');
+                    }
+                } catch (err) { setError(err.message.replace('Firebase: ', '')); } finally { setLoading(false); }
+            };
+
+            return (
+                <div className="flex items-center justify-center min-h-screen relative overflow-hidden bg-[#0a0a0c]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-black pointer-events-none"></div>
+                    <GlassCard className="w-full max-w-md p-8 z-10 mx-4 border-t border-white/10 relative">
+                        <div className="text-center mb-8">
+                            <h1 className="text-4xl font-black text-white mb-2 tracking-tighter">NexTalk</h1>
+                            <p className="text-white/50">Připoj se k budoucnosti komunikace</p>
+                        </div>
+                        {mode === 'await_verify' ? (
+                            <div className="text-center space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                                <div className="bg-yellow-500/20 p-4 rounded-xl text-yellow-200 border border-yellow-500/30">
+                                    <h3 className="font-bold text-lg">Ověř svůj email</h3>
+                                    <p className="text-sm mt-2 text-yellow-100/80">Poslali jsme ti ověřovací odkaz na <strong>{email}</strong>.</p>
+                                    <p className="text-xs font-bold mt-4 uppercase text-yellow-400 flex items-center justify-center gap-2"><AlertTriangle size={16} /> Zkontroluj složku SPAM!</p>
+                                </div>
+                                <Button className="w-full" onClick={() => window.location.reload()}>Už jsem ověřil</Button>
+                                <button onClick={() => setMode('login')} className="text-sm text-white/50 hover:text-white">Zpět na přihlášení</button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleAuth} className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                {mode === 'register' && <Input icon={User} placeholder="Uživatelské jméno" value={username} onChange={e => setUsername(e.target.value)} />}
+                                <Input icon={Mail} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+                                {mode !== 'reset' && <Input icon={Lock} type="password" placeholder="Heslo" value={password} onChange={e => setPassword(e.target.value)} />}
+                                {mode === 'login' && <div className="flex justify-end"><button type="button" onClick={() => setMode('reset')} className="text-xs text-[#7A4DFF] hover:text-[#9d7aff] transition">Zapomněl jsi heslo?</button></div>}
+                                {successMsg && <div className="p-3 bg-green-500/20 text-green-400 text-sm rounded-lg text-center font-bold flex items-center justify-center gap-2 border border-green-500/30"><CheckCircle size={16} /> {successMsg}</div>}
+                                {error && <div className="p-3 bg-red-500/20 text-red-400 text-sm rounded-lg text-center border border-red-500/30">{error}</div>}
+                                <Button loading={loading} className="w-full">{mode === 'login' ? 'Přihlásit se' : mode === 'register' ? 'Registrovat se' : 'Odeslat reset'}</Button>
+                                {mode !== 'reset' && <div className="text-center mt-6 pt-6 border-t border-white/5"><button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(""); }} className="text-sm text-white/50 hover:text-white transition">{mode === 'login' ? 'Nemáš účet? Registrace' : 'Máš účet? Přihlášení'}</button></div>}
+                                {mode === 'reset' && <div className="text-center mt-4"><button type="button" onClick={() => setMode('login')} className="text-sm text-white/50 hover:text-white">Zpět</button></div>}
+                            </form>
+                        )}
+                    </GlassCard>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<AuthScreen />);
+    </script>
+</body>
+
+</html>
