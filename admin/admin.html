@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexTalk - Admin</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+            "firebase/storage": "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"
+        }
+    }
+    </script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.1));
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover, rgba(255, 255, 255, 0.2));
+        }
+
+        /* Theme Variables Defaults */
+        :root {
+            --bg-primary: #0f0f13;
+            --bg-secondary: #18181b;
+            --bg-tertiary: #27272a;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --accent: #7A4DFF;
+            --border: rgba(255, 255, 255, 0.05);
+            --msg-me: #7A4DFF;
+            --msg-them: #27272a;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+        }
+    </style>
+</head>
+
+<body class="h-screen overflow-hidden selection:bg-[#7A4DFF] selection:text-white" id="app-body">
+
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import {
+            MessageSquare, Users, Settings, Heart, Send, Plus,
+            Image as ImageIcon, Search, Bell, LogOut,
+            MoreVertical, Phone, Video, X, Zap, Eye, EyeOff,
+            Hash, Mail, AlertTriangle, CheckCircle, RefreshCw,
+            Camera, ChevronLeft, ChevronRight, Shield,
+            User, Lock, Trash2, Ban, Globe, Mic, Volume2, UserPlus,
+            Paperclip, MessageCircle, Activity, Skull, Ghost, Megaphone
+        } from 'lucide-react';
+
+        import { initializeApp } from 'firebase/app';
+        import {
+            getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+            onAuthStateChanged, signOut, sendEmailVerification, sendPasswordResetEmail, updatePassword, updateEmail
+        } from 'firebase/auth';
+        import {
+            getFirestore, collection, doc, setDoc, addDoc, onSnapshot,
+            query, orderBy, serverTimestamp, updateDoc, deleteDoc, getDoc, where, arrayUnion, arrayRemove
+        } from 'firebase/firestore';
+
+        window.process = { env: { NODE_ENV: 'production' } };
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyClqVa0abAGdbWre1SgNQ_LPE3OhFgwqC4",
+            authDomain: "nextalk-4cb86.firebaseapp.com",
+            projectId: "nextalk-4cb86",
+            storageBucket: "nextalk-4cb86.firebasestorage.app",
+            messagingSenderId: "894596255124",
+            appId: "1:894596255124:web:6fdd8b80b8e96fc9aad381",
+            measurementId: "G-M8EDS7KCE2"
+        };
+
+        const _appId = 'nextalk-production-v11';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const generateFriendCode = () => {
+            const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const prefix = Array(3).fill(0).map(() => letters[Math.floor(Math.random() * letters.length)]).join('');
+            const suffix = Math.floor(100000 + Math.random() * 900000).toString();
+            return `${prefix}-${suffix}`;
+        };
+
+        const getAvatar = (uid) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}&backgroundColor=b6e3f4`;
+
+        const logAdminAction = async (text) => {
+            await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'audit_log'), {
+                text, createdAt: serverTimestamp()
+            });
+        };
+
+        const handleRealFileUpload = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        };
+
+        const ThemeInjector = ({ theme, customColors }) => {
+            useEffect(() => {
+                const root = document.documentElement;
+                if (theme === 'light') {
+                    root.style.setProperty('--bg-primary', '#f4f4f5');
+                    root.style.setProperty('--bg-secondary', '#ffffff');
+                    root.style.setProperty('--bg-tertiary', '#e4e4e7');
+                    root.style.setProperty('--text-primary', '#18181b');
+                    root.style.setProperty('--text-secondary', '#71717a');
+                    root.style.setProperty('--border', 'rgba(0,0,0,0.1)');
+                    root.style.setProperty('--scrollbar-thumb', 'rgba(0,0,0,0.2)');
+                    root.style.setProperty('--msg-me', '#7A4DFF');
+                    root.style.setProperty('--msg-them', '#e4e4e7');
+                } else if (theme === 'custom' && customColors) {
+                    root.style.setProperty('--bg-primary', customColors.bgPrimary);
+                    root.style.setProperty('--bg-secondary', customColors.bgSecondary);
+                    root.style.setProperty('--bg-tertiary', customColors.bgSecondary + '80');
+                    root.style.setProperty('--text-primary', customColors.text);
+                    root.style.setProperty('--text-secondary', customColors.text + '99');
+                    root.style.setProperty('--accent', customColors.accent);
+                    root.style.setProperty('--border', customColors.text + '20');
+                    root.style.setProperty('--msg-me', customColors.accent);
+                    root.style.setProperty('--msg-them', customColors.bgSecondary + '90');
+                } else {
+                    root.style.setProperty('--bg-primary', '#0f0f13');
+                    root.style.setProperty('--bg-secondary', '#18181b');
+                    root.style.setProperty('--bg-tertiary', '#27272a');
+                    root.style.setProperty('--text-primary', '#ffffff');
+                    root.style.setProperty('--text-secondary', 'rgba(255,255,255,0.6)');
+                    root.style.setProperty('--border', 'rgba(255,255,255,0.05)');
+                    root.style.setProperty('--msg-me', '#7A4DFF');
+                    root.style.setProperty('--msg-them', '#27272a');
+                }
+            }, [theme, customColors]);
+            return null;
+        };
+
+        const GlassCard = ({ children, className = "", onClick, onContextMenu }) => (
+            <div onClick={onClick} onContextMenu={onContextMenu} className={`backdrop-blur-xl bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Modal = ({ onClose, title, children }) => (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+                <GlassCard className="w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col rounded-2xl bg-[var(--bg-secondary)]">
+                    <div className="p-5 border-b border-[var(--border)] flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">{title}</h2>
+                        <button onClick={onClose} className="p-1 hover:bg-[var(--bg-tertiary)] rounded-full text-[var(--text-primary)]"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 overflow-y-auto custom-scrollbar text-[var(--text-primary)]">
+                        {children}
+                    </div>
+                </GlassCard>
+            </div>
+        );
+
+        const Button = ({ children, onClick, className = "", variant = "primary" }) => {
+            const styles = {
+                primary: "bg-[var(--accent)] text-white hover:brightness-110",
+                secondary: "bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-opacity-80",
+                danger: "bg-red-500/20 text-red-500 hover:bg-red-500/30"
+            };
+            return (
+                <button onClick={onClick} className={`px-4 py-2 rounded-xl font-bold transition-all active:scale-95 ${styles[variant]} ${className}`}>
+                    {children}
+                </button>
+            );
+        };
+
+        const Input = ({ type = "text", placeholder, value, onChange, icon: Icon, className = "" }) => (
+            <div className="relative w-full">
+                {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] w-5 h-5" />}
+                <input
+                    type={type}
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={onChange}
+                    className={`w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-xl py-3 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all ${Icon ? 'pl-12' : 'pl-4'} ${className}`}
+                />
+            </div>
+        );
+
+        // ADMIN DASHBOARD
+        const AdminDashboard = ({ user, allUsers }) => {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [crews, setCrews] = useState([]);
+            const [posts, setPosts] = useState([]);
+            const [logs, setLogs] = useState([]);
+            const [ghostCrew, setGhostCrew] = useState(null);
+            const [ghostChannel, setGhostChannel] = useState('general');
+            const [ghostChannelMsgs, setGhostChannelMsgs] = useState([]);
+
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [userHistory, setUserHistory] = useState({ msgs: [], posts: [], stories: [] });
+            const [newUserId, setNewUserId] = useState("");
+
+            const [ghostPMTarget, setGhostPMTarget] = useState(null);
+            const [ghostPMChats, setGhostPMChats] = useState([]);
+            const [activeGhostChat, setActiveGhostChat] = useState(null);
+            const [ghostChatMsgs, setGhostChatMsgs] = useState([]);
+            const [ghostMsgText, setGhostMsgText] = useState("");
+
+            const [announceText, setAnnounceText] = useState("");
+            const [announceImage, setAnnounceImage] = useState(null);
+
+            useEffect(() => {
+                const u1 = onSnapshot(collection(db, 'artifacts', _appId, 'public', 'data', 'crews'), s => setCrews(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                const u2 = onSnapshot(collection(db, 'artifacts', _appId, 'public', 'data', 'posts'), s => setPosts(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                const u3 = onSnapshot(query(collection(db, 'artifacts', _appId, 'public', 'data', 'audit_log'), orderBy('createdAt', 'desc')), s => setLogs(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                return () => { u1(); u2(); u3(); };
+            }, []);
+
+            useEffect(() => {
+                if (ghostCrew) {
+                    const q = query(collection(db, 'artifacts', _appId, 'public', 'data', 'crews', ghostCrew.id, 'channels', ghostChannel, 'messages'), orderBy('createdAt', 'asc'));
+                    return onSnapshot(q, s => setGhostChannelMsgs(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                }
+            }, [ghostCrew, ghostChannel]);
+
+            const fetchUserHistory = async (uid) => {
+                const uPosts = posts.filter(p => p.authorId === uid);
+                setUserHistory({ posts: uPosts, msgs: [], stories: [] });
+                setSelectedUser(allUsers[uid]);
+                setNewUserId(allUsers[uid].friendCode);
+            };
+
+            const updateUserCode = async () => {
+                if (!selectedUser) return;
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', selectedUser.uid), { friendCode: newUserId });
+                logAdminAction(`Changed ID for ${selectedUser.displayName} to ${newUserId}`);
+                alert("ID Změněno");
+            };
+
+            const banUser = async (uid) => {
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'users', uid), {
+                    banned: true,
+                    bannedReason: "Porušení pravidel (Admin Action)"
+                });
+                logAdminAction(`Banned user ${uid}`);
+                alert("Uživatel zabanován.");
+            };
+
+            const deleteContent = async (collectionName, id) => {
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', collectionName, id), { deleted: true });
+                logAdminAction(`Deleted ${collectionName} ${id}`);
+            };
+
+            const suspendCrew = async (crewId, isSuspended) => {
+                await updateDoc(doc(db, 'artifacts', _appId, 'public', 'data', 'crews', crewId), { suspended: !isSuspended });
+                logAdminAction(`Toggled suspension for crew ${crewId}`);
+            };
+
+            const openGhostView = (crew) => {
+                setGhostCrew(crew);
+                setGhostChannel('general');
+            };
+
+            useEffect(() => {
+                if (!ghostPMTarget) return;
+                const q = query(collection(db, 'artifacts', _appId, 'public', 'data', 'messages'), orderBy('createdAt', 'asc'));
+                const unsub = onSnapshot(q, snap => {
+                    const allMsgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    const userMsgs = allMsgs.filter(m => m.from === ghostPMTarget || m.to === ghostPMTarget);
+                    const partners = new Set();
+                    userMsgs.forEach(m => {
+                        partners.add(m.from === ghostPMTarget ? m.to : m.from);
+                    });
+                    setGhostPMChats(Array.from(partners).map(uid => allUsers[uid]).filter(Boolean));
+                });
+                return () => unsub();
+            }, [ghostPMTarget]);
+
+            useEffect(() => {
+                if (!activeGhostChat || !ghostPMTarget) return;
+                const q = query(collection(db, 'artifacts', _appId, 'public', 'data', 'messages'), orderBy('createdAt', 'asc'));
+                const unsub = onSnapshot(q, snap => {
+                    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                        .filter(m => (m.from === ghostPMTarget && m.to === activeGhostChat.uid) || (m.from === activeGhostChat.uid && m.to === ghostPMTarget));
+                    setGhostChatMsgs(msgs);
+                });
+                return () => unsub();
+            }, [activeGhostChat, ghostPMTarget]);
+
+            const sendGhostMessage = async () => {
+                if (!ghostMsgText.trim()) return;
+                await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'messages'), {
+                    from: ghostPMTarget,
+                    to: activeGhostChat.uid,
+                    text: ghostMsgText,
+                    createdAt: serverTimestamp()
+                });
+                setGhostMsgText("");
+                logAdminAction(`Ghost sent msg as ${allUsers[ghostPMTarget]?.displayName} to ${activeGhostChat.displayName}`);
+            };
+
+            const handleAnnounceImage = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const url = await handleRealFileUpload(file);
+                setAnnounceImage(url);
+            };
+
+            const sendAnnouncement = async () => {
+                if (!announceText && !announceImage) return;
+                await addDoc(collection(db, 'artifacts', _appId, 'public', 'data', 'posts'), {
+                    content: announceText,
+                    imageUrl: announceImage,
+                    authorId: 'NEXTALK_SYSTEM',
+                    authorName: 'NexTalk',
+                    authorAvatar: 'https://ui-avatars.com/api/?name=NexTalk&background=7A4DFF&color=fff',
+                    likes: [], comments: [],
+                    createdAt: serverTimestamp(),
+                    isAnnouncement: true
+                });
+                setAnnounceText("");
+                setAnnounceImage(null);
+                alert("Oznámení odesláno!");
+                logAdminAction("Sent global announcement");
+            };
+
+            return (
+                <div className="h-full flex flex-col bg-[#111]">
+                    <div className="bg-red-900/20 border-b border-red-500/30 p-4 flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-red-500 flex items-center gap-2"><Shield /> ADMIN GOD MODE</h2>
+                        <div className="flex gap-2">
+                            {['overview', 'users', 'crews', 'content', 'announce'].map(t => (
+                                <button key={t} onClick={() => setActiveTab(t)} className={`px-3 py-1 rounded uppercase text-xs font-bold ${activeTab === t ? 'bg-red-600 text-white' : 'bg-red-900/40 text-red-300'}`}>{t}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        {activeTab === 'overview' && (
+                            <div className="flex gap-6 h-full">
+                                <div className="w-1/3 bg-[#1a1a1a] p-4 rounded-xl border border-white/10 overflow-y-auto">
+                                    <h3 className="font-bold text-red-400 mb-4 flex items-center gap-2"><Activity size={16} /> AUDIT LOG</h3>
+                                    <div className="space-y-2">
+                                        {logs.map(log => (
+                                            <div key={log.id} className="text-xs p-2 bg-white/5 rounded border-l-2 border-red-500">
+                                                <div className="text-gray-400 mb-1">{new Date(log.createdAt?.toMillis()).toLocaleTimeString()}</div>
+                                                {log.text}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex-1 bg-[#1a1a1a] p-4 rounded-xl border border-white/10 overflow-y-auto">
+                                    <h3 className="font-bold text-blue-400 mb-4 flex items-center gap-2"><Globe size={16} /> GLOBAL FEED (POSTS & STORIES)</h3>
+                                    <div className="space-y-2">
+                                        {posts.map(p => (
+                                            <div key={p.id} className={`p-3 rounded border border-white/5 ${p.deleted ? 'bg-red-900/20 border-red-500/30' : 'bg-white/5'}`}>
+                                                <div className="flex justify-between">
+                                                    <span className="text-sm font-bold text-gray-300">POST: {p.authorName}</span>
+                                                    <div className="flex gap-2">
+                                                        {p.deleted && <span className="text-xs text-red-500">DELETED</span>}
+                                                        {!p.deleted && <Button variant="danger" className="py-0 px-2 text-[10px]" onClick={() => deleteContent('posts', p.id)}>DEL</Button>}
+                                                    </div>
+                                                </div>
+                                                <div className="text-sm text-gray-400 mt-1">{p.content}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'users' && (
+                            <div className="flex gap-6 h-full">
+                                <div className="w-1/3 space-y-2 overflow-y-auto">
+                                    {Object.values(allUsers).map(u => (
+                                        <div key={u.uid} onClick={() => fetchUserHistory(u.uid)} className={`flex justify-between items-center bg-[#1a1a1a] p-3 rounded border cursor-pointer hover:border-blue-500 ${selectedUser?.uid === u.uid ? 'border-blue-500 bg-blue-900/20' : 'border-white/10'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <img src={u.avatarUrl} className="w-8 h-8 rounded-full" />
+                                                <div>
+                                                    <div className="font-bold text-sm">{u.displayName}</div>
+                                                    <div className="text-xs font-mono text-gray-600">{u.friendCode}</div>
+                                                </div>
+                                            </div>
+                                            {u.banned ? <Skull size={16} className="text-red-500" /> : <div className="w-2 h-2 bg-green-500 rounded-full" />}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex-1 bg-[#1a1a1a] p-6 rounded-xl border border-white/10 overflow-y-auto">
+                                    {selectedUser ? (
+                                        <>
+                                            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
+                                                <img src={selectedUser.avatarUrl} className="w-20 h-20 rounded-full" />
+                                                <div className="flex-1">
+                                                    <h2 className="text-2xl font-bold">{selectedUser.displayName}</h2>
+                                                    <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                                                    <div className="flex gap-2 mt-2">
+                                                        <Input value={newUserId} onChange={e => setNewUserId(e.target.value)} className="h-8 text-xs w-32" />
+                                                        <Button onClick={updateUserCode} className="h-8 py-0 px-3 text-xs">Změnit ID</Button>
+                                                        <Button onClick={() => banUser(selectedUser.uid)} variant="danger" className="h-8 py-0 px-3 text-xs">BAN</Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <h3 className="font-bold mb-2 text-blue-400">Historie (vč. smazaných)</h3>
+                                            <div className="space-y-2">
+                                                {userHistory.posts.map(p => (
+                                                    <div key={p.id} className={`p-2 rounded text-sm ${p.deleted ? 'bg-red-900/20 text-red-200' : 'bg-white/5'}`}>
+                                                        [POST] {p.content} {p.deleted && "(Smazáno)"}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : <div className="flex items-center justify-center h-full text-gray-600">Vyber uživatele</div>}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'crews' && (
+                            <div className="space-y-2">
+                                {crews.map(c => (
+                                    <div key={c.id} className={`flex justify-between items-center bg-[#1a1a1a] p-3 rounded border border-white/10 ${c.deleted ? 'opacity-50 border-red-500' : ''}`}>
+                                        <div className="flex items-center gap-3">
+                                            <img src={c.icon} className="w-8 h-8 rounded" />
+                                            <div>
+                                                <div className="font-bold">{c.name} {c.deleted && "(DELETED)"}</div>
+                                                <div className="text-xs text-gray-500">{c.members?.length} members</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="secondary" className="py-1 px-2 text-xs" onClick={() => openGhostView(c)}>Ghost View</Button>
+                                            <Button variant="secondary" className={`py-1 px-2 text-xs ${c.suspended ? 'bg-yellow-600 text-white' : ''}`} onClick={() => suspendCrew(c.id, c.suspended)}>{c.suspended ? 'UNSUSPEND' : 'SUSPEND'}</Button>
+                                            <Button variant="danger" className="py-1 px-2 text-xs" onClick={() => deleteContent('crews', c.id)}>NUKE</Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'content' && (
+                            <div className="flex gap-6 h-full">
+                                <div className="w-1/4 bg-[#1a1a1a] p-4 rounded-xl border border-white/10 overflow-y-auto">
+                                    <h3 className="font-bold text-purple-400 mb-4 flex items-center gap-2"><Ghost size={16} /> GHOST PM - Select User</h3>
+                                    <div className="space-y-2">
+                                        {Object.values(allUsers).map(u => (
+                                            <div key={u.uid} onClick={() => setGhostPMTarget(u.uid)} className={`p-2 rounded cursor-pointer text-sm ${ghostPMTarget === u.uid ? 'bg-purple-900/40 border border-purple-500' : 'hover:bg-white/5'}`}>
+                                                {u.displayName}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="w-1/4 bg-[#1a1a1a] p-4 rounded-xl border border-white/10 overflow-y-auto">
+                                    <h3 className="font-bold text-gray-400 mb-4">Conversations</h3>
+                                    <div className="space-y-2">
+                                        {ghostPMChats.map(partner => (
+                                            <div key={partner.uid} onClick={() => setActiveGhostChat(partner)} className={`p-2 rounded cursor-pointer flex items-center gap-2 text-sm ${activeGhostChat?.uid === partner.uid ? 'bg-white/10' : 'hover:bg-white/5'}`}>
+                                                <img src={partner.avatarUrl} className="w-6 h-6 rounded-full" />
+                                                {partner.displayName}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex-1 bg-[#1a1a1a] p-4 rounded-xl border border-white/10 flex flex-col">
+                                    {activeGhostChat && ghostPMTarget ? (
+                                        <>
+                                            <div className="border-b border-white/10 pb-2 mb-2 font-bold text-center text-gray-400">
+                                                {allUsers[ghostPMTarget]?.displayName} ↔ {activeGhostChat.displayName}
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto space-y-2 mb-4 p-2 bg-black/20 rounded">
+                                                {ghostChatMsgs.map(m => (
+                                                    <div key={m.id} className={`flex ${m.from === ghostPMTarget ? 'justify-end' : 'justify-start'}`}>
+                                                        <div className={`p-2 rounded-lg max-w-[80%] text-xs ${m.from === ghostPMTarget ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
+                                                            {m.text}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <input className="flex-1 bg-white/5 rounded px-2 text-sm outline-none text-white border border-white/10" placeholder={`Send as ${allUsers[ghostPMTarget]?.displayName}...`} value={ghostMsgText} onChange={e => setGhostMsgText(e.target.value)} />
+                                                <Button onClick={sendGhostMessage} className="py-1 px-3 text-xs">Send</Button>
+                                            </div>
+                                        </>
+                                    ) : <div className="flex-1 flex items-center justify-center text-gray-600">Select a chat</div>}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'announce' && (
+                            <div className="flex items-center justify-center h-full">
+                                <div className="w-full max-w-2xl bg-[#1a1a1a] p-8 rounded-xl border border-white/10 space-y-6">
+                                    <h3 className="text-2xl font-bold text-white flex items-center gap-3"><Megaphone className="text-[var(--accent)]" /> Odeslat Oznámení</h3>
+                                    <div className="space-y-4">
+                                        <textarea className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white h-40 outline-none focus:border-[var(--accent)]" placeholder="Text oznámení..." value={announceText} onChange={e => setAnnounceText(e.target.value)}></textarea>
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative group cursor-pointer">
+                                                <div className="w-20 h-20 bg-black/20 rounded-xl border border-white/10 flex items-center justify-center overflow-hidden">
+                                                    {announceImage ? <img src={announceImage} className="w-full h-full object-cover" /> : <ImageIcon className="text-gray-500" />}
+                                                </div>
+                                                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleAnnounceImage} />
+                                            </div>
+                                            <div className="text-sm text-gray-400">Přidat obrázek (volitelné)</div>
+                                        </div>
+                                        <Button onClick={sendAnnouncement} className="w-full py-4 text-lg">Odeslat Všem</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {ghostCrew && (
+                        <Modal title={`Ghost View: ${ghostCrew.name}`} onClose={() => setGhostCrew(null)}>
+                            <div className="h-96 flex flex-col bg-[#0f0f13] rounded-lg overflow-hidden">
+                                <div className="flex bg-[#1a1a1a] border-b border-white/10">
+                                    {ghostCrew.channels.map(ch => {
+                                        const chName = ch.name || ch;
+                                        return (
+                                            <button key={chName} onClick={() => setGhostChannel(chName)} className={`px-4 py-2 text-xs font-bold ${ghostChannel === chName ? 'bg-red-900/40 text-red-300' : 'text-gray-500 hover:bg-white/5'}`}>
+                                                #{chName}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                                    {ghostChannelMsgs.map(msg => (
+                                        <div key={msg.id} className="flex gap-2 items-start">
+                                            <img src={allUsers[msg.authorId]?.avatarUrl} className="w-6 h-6 rounded-full" />
+                                            <div>
+                                                <span className="text-xs font-bold text-gray-400 mr-2">{allUsers[msg.authorId]?.displayName}</span>
+                                                <span className="text-sm text-gray-200">{msg.text}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {ghostChannelMsgs.length === 0 && <div className="text-center text-gray-600 mt-10">Žádné zprávy</div>}
+                                </div>
+                                <div className="p-2 bg-red-900/20 text-red-400 text-xs text-center border-t border-red-900/30">Jsi v režimu Ghost.</div>
+                            </div>
+                        </Modal>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [allUsers, setAllUsers] = useState({});
+            const [notifications, setNotifications] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                let unsubSnapshot = null;
+                const unsubAuth = onAuthStateChanged(auth, async (u) => {
+                    if (u) {
+                        if (unsubSnapshot) unsubSnapshot();
+                        const userDocRef = doc(db, 'artifacts', _appId, 'public', 'data', 'users', u.uid);
+                        unsubSnapshot = onSnapshot(userDocRef, async (docSnap) => {
+                            if (docSnap.exists()) {
+                                setUser({ ...docSnap.data(), isVerified: u.emailVerified });
+                            } else {
+                                await setDoc(userDocRef, {
+                                    uid: u.uid, email: u.email, displayName: u.displayName || u.email.split('@')[0],
+                                    friendCode: generateFriendCode(), avatarUrl: getAvatar(u.uid),
+                                    status: 'online', friends: [], blocked: [], bio: "Welcome to NexTalk",
+                                    theme: 'dark', joinedAt: serverTimestamp()
+                                });
+                            }
+                            setLoading(false);
+                        });
+                    } else {
+                        if (unsubSnapshot) unsubSnapshot();
+                        setUser(null);
+                        setLoading(false);
+                        window.location.href = '../auth/login.html';
+                    }
+                });
+                return () => { unsubAuth(); if (unsubSnapshot) unsubSnapshot(); };
+            }, []);
+
+            useEffect(() => {
+                const unsub = onSnapshot(collection(db, 'artifacts', _appId, 'public', 'data', 'users'), s => { const m = {}; s.forEach(d => m[d.id] = { uid: d.id, ...d.data() }); setAllUsers(m); });
+                return () => unsub();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const q = query(collection(db, 'artifacts', _appId, 'public', 'data', 'friend_requests'), where("to", "==", user.uid), where("status", "==", "pending"));
+                return onSnapshot(q, s => setNotifications(s.docs));
+            }, [user]);
+
+            if (loading) return <div className="h-screen w-screen bg-[#0f0f13]"></div>;
+            if (!user) return <AuthScreen onLogin={() => { }} />;
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    <ThemeInjector theme={user.theme} customColors={user.customColors} />
+                    <nav className="w-20 bg-[var(--bg-secondary)] border-r border-[var(--border)] flex flex-col items-center py-6 gap-6 z-20">
+                        <div className="w-12 h-12 bg-gradient-to-tr from-[var(--accent)] to-purple-400 rounded-xl flex items-center justify-center shadow-lg"><Zap className="text-white" /></div>
+
+                        <a href="../feed/feed.html" className="p-3 rounded-xl transition text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"><Hash /></a>
+
+                        <div className="relative">
+                            <a href="../friends/friends.html" className="p-3 rounded-xl transition text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
+                                <Bell size={24} />
+                            </a>
+                            {notifications.length > 0 && <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--bg-primary)] animate-pulse" />}
+                        </div>
+
+                        <a href="../friends/friends.html" className="p-3 rounded-xl transition text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"><Users /></a>
+                        <a href="../crews/crews.html" className="p-3 rounded-xl transition text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"><Globe /></a>
+                        {user.isAdmin && <a href="../admin/admin.html" className="p-3 rounded-xl transition bg-red-600 text-white"><Shield /></a>}
+
+                        <div className="mt-auto flex flex-col gap-4">
+                            <a href="../settings/settings.html" className="p-3 rounded-xl transition text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"><Settings /></a>
+                            <button onClick={() => signOut(auth)}><LogOut className="text-[var(--text-secondary)] hover:text-red-400" /></button>
+                        </div>
+                    </nav>
+                    <main className="flex-1 bg-[var(--bg-primary)] overflow-hidden relative">
+                        {user.isAdmin ? <AdminDashboard user={user} allUsers={allUsers} /> : <div className="flex items-center justify-center h-full text-red-500">Access Denied</div>}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
